@@ -5,3 +5,4 @@ dist/
 build/
 *.db
 .env
+.venv/

@@ -10,7 +10,7 @@ Terminal-native startup idea generator with a multi-agent evaluation pipeline. E
 - **Preference Learning** — The system learns your taste over time and tailors future ideas
 - **Livestream Mode** — Fully autonomous mode with an AI taste agent replacing human feedback
 - **Persona System** — Choose from famous founders, archetypes, or custom personas for the taste agent
-- **Trending Integration** — Injects real-time trending topics into idea generation
+- **Trending Integration** — Pulls real-time signals from 13 sources across startup launches, industry analysis, and community discussions
 - **Session Persistence** — SQLite-backed storage for ideas, agent outputs, feedback, and preferences
 
 ## Installation
@@ -106,6 +106,18 @@ Activated with `--claude-check` / `-cc`. Runs after the Judge for each finalist 
 - **What It Builds** — What Claude can produce in a single session
 - **What It Can't** — What remains unsolved (data moats, distribution, regulatory)
 - **Defensibility Note** — If Claude can build it in 2 hours, so can anyone — what's the moat?
+
+## Inspiration Sources
+
+The Creator agent is fed real-time signals from across the startup ecosystem via DuckDuckGo searches. Results are cached for 10 minutes and injected as context — inspiration, not constraints.
+
+| Category | Sources |
+|---|---|
+| **Launches & Community** | Product Hunt, Y Combinator, BetaList, AngelList, Indie Hackers |
+| **Industry Analysis** | TechCrunch, a16z, CB Insights, First Round Review, Crunchbase |
+| **Broader Signals** | Hacker News, AI startup trends, general startup trends |
+
+Inspired by [@adxtyahq](https://x.com/adxtyahq/status/2024929673755718097).
 
 ## Project Structure
 

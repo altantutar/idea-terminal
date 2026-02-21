@@ -45,15 +45,30 @@ def fetch_trending() -> TrendingContext:
 
     topics: list[str] = []
 
-    queries = [
-        "trending startup ideas 2026",
-        "Hacker News top stories today",
+    # Startup launches & community
+    launch_queries = [
         "Product Hunt trending today",
         "YC latest batch companies",
+        "BetaList new startups this week",
+        "AngelList trending startups",
+        "Indie Hackers top posts this week",
+    ]
+    # Industry analysis & thought leadership
+    analysis_queries = [
+        "TechCrunch startup launches this week",
+        "a16z blog latest market trends",
+        "CB Insights industry reports 2026",
+        "First Round Review startup advice",
+        "Crunchbase trending funding rounds",
+    ]
+    # Broader signals
+    signal_queries = [
+        "Hacker News top stories today",
         "AI startup trends this week",
+        "trending startup ideas 2026",
     ]
 
-    for query in queries:
+    for query in launch_queries + analysis_queries + signal_queries:
         results = _search(query, max_results=3)
         topics.extend(results)
 
@@ -65,7 +80,7 @@ def fetch_trending() -> TrendingContext:
             seen.add(t.lower())
             unique.append(t)
 
-    _cache = TrendingContext(topics=unique[:15], fetched_at=now)
+    _cache = TrendingContext(topics=unique[:25], fetched_at=now)
     return _cache
 
 
@@ -75,7 +90,7 @@ def build_trending_prefix(ctx: TrendingContext) -> str:
         return ""
 
     lines = ["[TRENDING CONTEXT — use these as inspiration, not constraints]"]
-    for topic in ctx.topics[:10]:
+    for topic in ctx.topics[:15]:
         lines.append(f"- {topic}")
     lines.append(
         "Draw inspiration from these real-world signals. "
