@@ -15,10 +15,12 @@ def get_provider(settings: Settings) -> LLMProvider:
         return AnthropicProvider(
             api_key=settings.anthropic_api_key,  # type: ignore[arg-type]
             model=settings.model,
+            max_retries=settings.max_retries,
         )
     if settings.llm_provider == "openai":
         return OpenAIProvider(
             api_key=settings.openai_api_key,  # type: ignore[arg-type]
             model=settings.model,
+            max_retries=settings.max_retries,
         )
     raise ValueError(f"Unknown provider: {settings.llm_provider}")

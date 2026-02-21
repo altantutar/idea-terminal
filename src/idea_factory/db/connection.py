@@ -57,6 +57,27 @@ CREATE TABLE IF NOT EXISTS sessions (
     created_at    TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS token_usage (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    idea_id       INTEGER REFERENCES ideas(id),
+    agent_name    TEXT NOT NULL,
+    input_tokens  INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    provider      TEXT NOT NULL DEFAULT '',
+    model         TEXT NOT NULL DEFAULT '',
+    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS scoreboard (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    idea_name       TEXT NOT NULL,
+    composite_score REAL NOT NULL DEFAULT 0,
+    verdict         TEXT NOT NULL DEFAULT '',
+    taste_decision  TEXT NOT NULL DEFAULT '',
+    taste_rating    INTEGER NOT NULL DEFAULT 0,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 

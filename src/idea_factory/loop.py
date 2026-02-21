@@ -39,11 +39,20 @@ from idea_factory.preferences import (
     update_preferences,
 )
 
-# Top-K survivors that proceed to full evaluation
-TOP_K = 2
 
-# Stop after this many winners in a single session
-MAX_WINNERS = 10
+def _track_usage(conn, agent, idea_id, settings):
+    """Persist token usage from the last agent call."""
+    usage = agent.last_usage
+    if usage:
+        repo.save_token_usage(
+            conn,
+            idea_id=idea_id,
+            agent_name=agent.name,
+            input_tokens=usage.get("input_tokens", 0),
+            output_tokens=usage.get("output_tokens", 0),
+            provider=settings.llm_provider,
+            model=settings.model,
+        )
 
 
 class GracefulExit(Exception):
@@ -63,6 +72,9 @@ def run_loop(
     claude_check: bool = False,
 ) -> None:
     """Run the continuous idea generation + evaluation loop."""
+    top_k = settings.top_k
+    max_winners = settings.max_winners
+
     conn = get_db(settings.db_path)
     provider = get_provider(settings)
 
@@ -111,6 +123,7 @@ def run_loop(
                     "recent_rejections": recent_rejections,
                 })
             ideas = creator_out.ideas  # type: ignore[attr-defined]
+            _track_usage(conn, creator, None, settings)
             console.print(f"  [bold green]{len(ideas)} ideas generated[/bold green]\n")
 
             # Save ideas to DB
@@ -131,9 +144,11 @@ def run_loop(
                         reflection_prompt_fn=lambda ctx, out: challenger_reflection_prompt(
                             idea=ctx["idea"], challenger_output=out,
                         ),
+                        max_rounds=settings.reflexion_max_rounds,
                     )
                 ch_dict = ch_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "challenger", ch_dict)
+                _track_usage(conn, challenger, idea_dict["id"], settings)
 
                 if ch_dict["verdict"] == "SURVIVE":
                     survivors.append((idea_dict, ch_dict))
@@ -150,7 +165,7 @@ def run_loop(
                 continue
 
             # Take top-K survivors (first K by order)
-            top_survivors = survivors[:TOP_K]
+            top_survivors = survivors[:top_k]
             console.print(
                 f"\n  [bold bright_cyan]{len(top_survivors)} idea(s) advancing to full evaluation[/bold bright_cyan]\n"
             )
@@ -165,6 +180,7 @@ def run_loop(
                     b_out = builder.run({"idea": idea_dict})
                 b_dict = b_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "builder", b_dict)
+                _track_usage(conn, builder, idea_dict["id"], settings)
 
                 if not b_dict.get("buildable", True):
                     console.print(f"  [bold red]NOT BUILDABLE[/bold red] [dim]— skipping[/dim]")
@@ -179,6 +195,7 @@ def run_loop(
                     })
                 d_dict = d_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "distributor", d_dict)
+                _track_usage(conn, distributor, idea_dict["id"], settings)
 
                 # Consumer
                 with agent_status("consumer"):
@@ -189,6 +206,7 @@ def run_loop(
                     })
                 c_dict = c_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "consumer", c_dict)
+                _track_usage(conn, consumer, idea_dict["id"], settings)
 
                 # Judge
                 with agent_status("judge"):
@@ -204,9 +222,11 @@ def run_loop(
                         reflection_prompt_fn=lambda ctx, out: judge_reflection_prompt(
                             idea=ctx["idea"], judge_output=out,
                         ),
+                        max_rounds=settings.reflexion_max_rounds,
                     )
                 j_dict = j_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "judge", j_dict)
+                _track_usage(conn, judge, idea_dict["id"], settings)
 
                 # Update idea status based on verdict
                 verdict = j_dict.get("verdict", "PASS").lower()
@@ -227,6 +247,7 @@ def run_loop(
                         })
                     cc_dict = cc_out.model_dump()
                     repo.save_agent_output(conn, idea_dict["id"], "claude_check", cc_dict)
+                    _track_usage(conn, claude_check_agent, idea_dict["id"], settings)
                     display_claude_check(idea_dict, cc_dict)
 
             display_loop_summary(
@@ -259,9 +280,9 @@ def run_loop(
             if session_id:
                 repo.update_session_progress(conn, session_id, loop_num, total_winners)
 
-            if total_winners >= MAX_WINNERS:
+            if total_winners >= max_winners:
                 console.print(
-                    f"\n[bold green]Reached {MAX_WINNERS} winners! Wrapping up.[/bold green]"
+                    f"\n[bold green]Reached {max_winners} winners! Wrapping up.[/bold green]"
                 )
                 break
 

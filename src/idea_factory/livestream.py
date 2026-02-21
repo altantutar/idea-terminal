@@ -40,13 +40,6 @@ from idea_factory.prompts import challenger_reflection_prompt, judge_reflection_
 from idea_factory.reflexion import run_with_reflexion
 from idea_factory.trending import build_trending_prefix, fetch_trending
 
-# Top-K survivors that proceed to full evaluation
-TOP_K = 2
-
-# Pacing between ideas (seconds)
-PACE_BETWEEN_IDEAS = 2
-PACE_BETWEEN_LOOPS = 5
-
 # Auto-selected domains and region for autonomous mode
 AUTO_DOMAINS = [
     "Software engineering",
@@ -58,6 +51,21 @@ AUTO_DOMAINS = [
 ]
 AUTO_REGION = "Global"
 AUTO_CONSTRAINTS = "AI-native, can be built by a small team, high viral potential"
+
+
+def _track_usage(conn, agent, idea_id, settings):
+    """Persist token usage from the last agent call."""
+    usage = agent.last_usage
+    if usage:
+        repo.save_token_usage(
+            conn,
+            idea_id=idea_id,
+            agent_name=agent.name,
+            input_tokens=usage.get("input_tokens", 0),
+            output_tokens=usage.get("output_tokens", 0),
+            provider=settings.llm_provider,
+            model=settings.model,
+        )
 
 
 class GracefulExit(Exception):
@@ -75,6 +83,10 @@ def run_livestream(
     claude_check: bool = False,
 ) -> None:
     """Run the autonomous livestream loop — never stops until Ctrl+C."""
+    top_k = settings.top_k
+    pace_between_ideas = settings.pace_between_ideas
+    pace_between_loops = settings.pace_between_loops
+
     conn = get_db(settings.db_path)
     provider = get_provider(settings)
 
@@ -92,7 +104,8 @@ def run_livestream(
     prefs = load_preferences(conn)
     recent_rejections: list[str] = []
     loop_num = 0
-    scoreboard: list[dict] = []  # in-memory top-10
+    # Load persisted scoreboard, fall back to empty
+    scoreboard: list[dict] = repo.get_scoreboard(conn, limit=10)
 
     # Graceful exit
     prev_handler = signal.getsignal(signal.SIGINT)
@@ -105,7 +118,7 @@ def run_livestream(
 
             # ----- TRENDING CONTEXT -----
             console.print("  [dim]Fetching trending topics...[/dim]")
-            trending_ctx = fetch_trending()
+            trending_ctx = fetch_trending(cache_ttl=settings.trending_cache_ttl)
             trending_prefix = build_trending_prefix(trending_ctx)
             if trending_ctx.topics:
                 console.print(
@@ -124,6 +137,7 @@ def run_livestream(
                     "trending_prefix": trending_prefix,
                 })
             ideas = creator_out.ideas  # type: ignore[attr-defined]
+            _track_usage(conn, creator, None, settings)
             console.print(f"  [bold green]{len(ideas)} ideas generated[/bold green]\n")
 
             # Save ideas to DB
@@ -144,9 +158,11 @@ def run_livestream(
                         reflection_prompt_fn=lambda ctx, out: challenger_reflection_prompt(
                             idea=ctx["idea"], challenger_output=out,
                         ),
+                        max_rounds=settings.reflexion_max_rounds,
                     )
                 ch_dict = ch_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "challenger", ch_dict)
+                _track_usage(conn, challenger, idea_dict["id"], settings)
 
                 if ch_dict["verdict"] == "SURVIVE":
                     survivors.append((idea_dict, ch_dict))
@@ -160,10 +176,10 @@ def run_livestream(
                 console.print(
                     "\n  [yellow]No survivors this round. Generating new batch...[/yellow]\n"
                 )
-                time.sleep(PACE_BETWEEN_LOOPS)
+                time.sleep(pace_between_loops)
                 continue
 
-            top_survivors = survivors[:TOP_K]
+            top_survivors = survivors[:top_k]
             console.print(
                 f"\n  [bold bright_cyan]{len(top_survivors)} idea(s) advancing to full evaluation[/bold bright_cyan]\n"
             )
@@ -181,6 +197,7 @@ def run_livestream(
                     b_out = builder.run({"idea": idea_dict})
                 b_dict = b_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "builder", b_dict)
+                _track_usage(conn, builder, idea_dict["id"], settings)
 
                 if not b_dict.get("buildable", True):
                     console.print("  [bold red]NOT BUILDABLE[/bold red] [dim]— skipping[/dim]")
@@ -195,6 +212,7 @@ def run_livestream(
                     })
                 d_dict = d_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "distributor", d_dict)
+                _track_usage(conn, distributor, idea_dict["id"], settings)
 
                 # Consumer
                 with agent_status("consumer"):
@@ -205,6 +223,7 @@ def run_livestream(
                     })
                 c_dict = c_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "consumer", c_dict)
+                _track_usage(conn, consumer, idea_dict["id"], settings)
 
                 # Judge
                 with agent_status("judge"):
@@ -220,9 +239,11 @@ def run_livestream(
                         reflection_prompt_fn=lambda ctx, out: judge_reflection_prompt(
                             idea=ctx["idea"], judge_output=out,
                         ),
+                        max_rounds=settings.reflexion_max_rounds,
                     )
                 j_dict = j_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "judge", j_dict)
+                _track_usage(conn, judge, idea_dict["id"], settings)
 
                 # Update idea status
                 verdict = j_dict.get("verdict", "PASS").upper()
@@ -243,9 +264,10 @@ def run_livestream(
                         })
                     cc_dict = cc_out.model_dump()
                     repo.save_agent_output(conn, idea_dict["id"], "claude_check", cc_dict)
+                    _track_usage(conn, claude_check_agent, idea_dict["id"], settings)
                     display_claude_check(idea_dict, cc_dict)
 
-                time.sleep(PACE_BETWEEN_IDEAS)
+                time.sleep(pace_between_ideas)
 
             display_loop_summary(
                 loop_num,
@@ -264,6 +286,7 @@ def run_livestream(
                             "persona_description": persona_description,
                         })
                     fb_dict = taste_out.model_dump()
+                    _track_usage(conn, taste, idea_dict["id"], settings)
                     repo.save_feedback(conn, idea_dict["id"], fb_dict)
 
                     # Update preferences from AI feedback
@@ -272,15 +295,16 @@ def run_livestream(
 
                     display_taste_feedback(idea_dict, fb_dict, persona_label)
 
-                    # Update scoreboard
+                    # Update scoreboard (in-memory + DB)
                     _update_scoreboard(
+                        conn,
                         scoreboard,
                         idea_dict,
                         j_dict,
                         fb_dict,
                     )
 
-                    time.sleep(PACE_BETWEEN_IDEAS)
+                    time.sleep(pace_between_ideas)
 
             # ----- SCOREBOARD -----
             if scoreboard:
@@ -288,9 +312,9 @@ def run_livestream(
 
             # Pace before next loop
             console.print(
-                f"  [dim]Next loop in {PACE_BETWEEN_LOOPS}s... (Ctrl+C to stop)[/dim]\n"
+                f"  [dim]Next loop in {pace_between_loops}s... (Ctrl+C to stop)[/dim]\n"
             )
-            time.sleep(PACE_BETWEEN_LOOPS)
+            time.sleep(pace_between_loops)
 
     except GracefulExit:
         console.print()
@@ -315,12 +339,13 @@ def run_livestream(
 
 
 def _update_scoreboard(
+    conn,
     scoreboard: list[dict],
     idea: dict,
     judge_output: dict,
     taste_feedback: dict,
 ) -> None:
-    """Insert idea into the in-memory top-10 scoreboard, sorted by composite score."""
+    """Insert idea into the in-memory top-10 scoreboard and persist to DB."""
     entry = {
         "name": idea.get("name", "?"),
         "composite_score": judge_output.get("composite_score", 0),
@@ -328,6 +353,9 @@ def _update_scoreboard(
         "taste_decision": taste_feedback.get("decision", "?"),
         "taste_rating": taste_feedback.get("rating", 0),
     }
+    # Persist to database
+    repo.save_scoreboard_entry(conn, entry)
+
     scoreboard.append(entry)
     # Sort by composite score descending, keep top 10
     scoreboard.sort(key=lambda x: x.get("composite_score", 0), reverse=True)

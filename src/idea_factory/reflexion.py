@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Callable
 
 from pydantic import BaseModel
@@ -9,6 +10,7 @@ from rich.console import Console
 
 from idea_factory.models import ReflectionOutput
 
+logger = logging.getLogger("idea_factory.reflexion")
 console = Console(stderr=True)
 
 
@@ -39,7 +41,8 @@ def run_with_reflexion(
             ref_system, ref_user = reflection_prompt_fn(
                 context, output.model_dump()
             )
-        except Exception:
+        except Exception as exc:
+            logger.warning("Reflection prompt build failed (round %d): %s", round_num, exc)
             break
 
         # Ask the LLM to critique the output.
@@ -47,7 +50,8 @@ def run_with_reflexion(
             reflection: ReflectionOutput = agent.provider.generate(  # type: ignore[union-attr]
                 ref_system, ref_user, ReflectionOutput
             )
-        except ValueError:
+        except ValueError as exc:
+            logger.warning("Reflection parse failed (round %d): %s", round_num, exc)
             console.print(
                 f"  [dim]Reflection parse failed (round {round_num}), keeping current output[/dim]"
             )
@@ -78,7 +82,8 @@ def run_with_reflexion(
             output = agent.provider.generate(  # type: ignore[union-attr]
                 system_prompt, augmented_user, agent.output_model()  # type: ignore[union-attr]
             )
-        except ValueError:
+        except ValueError as exc:
+            logger.warning("Re-run parse failed (round %d): %s", round_num, exc)
             console.print(
                 f"  [dim]Re-run parse failed (round {round_num}), keeping previous output[/dim]"
             )

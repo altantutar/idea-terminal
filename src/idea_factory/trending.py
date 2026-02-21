@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 
 from rich.console import Console
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
+logger = logging.getLogger("idea_factory.trending")
 console = Console()
 
 
@@ -20,27 +23,41 @@ class TrendingContext:
 
 # Module-level cache
 _cache = TrendingContext()
-_CACHE_TTL = 600  # 10 minutes
+# Default TTL; overridden by Settings.trending_cache_ttl when passed to fetch_trending()
+_DEFAULT_CACHE_TTL = 600  # 10 minutes
+
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=8),
+    retry=retry_if_exception_type(Exception),
+    reraise=True,
+)
+def _search_with_retry(query: str, max_results: int = 5) -> list[str]:
+    """DuckDuckGo search with exponential backoff."""
+    from duckduckgo_search import DDGS
+
+    with DDGS() as ddgs:
+        results = list(ddgs.text(query, max_results=max_results))
+        return [r.get("title", "") for r in results if r.get("title")]
 
 
 def _search(query: str, max_results: int = 5) -> list[str]:
-    """Run a DuckDuckGo search and return result titles."""
+    """Run a DuckDuckGo search with retry. Returns empty list on failure."""
     try:
-        from duckduckgo_search import DDGS
-
-        with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=max_results))
-            return [r.get("title", "") for r in results if r.get("title")]
-    except Exception:
+        return _search_with_retry(query, max_results)
+    except Exception as exc:
+        logger.warning("DuckDuckGo search failed for %r after retries: %s", query, exc)
         return []
 
 
-def fetch_trending() -> TrendingContext:
-    """Fetch trending tech/startup topics. Cached for 10 minutes."""
+def fetch_trending(cache_ttl: int | None = None) -> TrendingContext:
+    """Fetch trending tech/startup topics. Cached for *cache_ttl* seconds."""
     global _cache
 
+    ttl = cache_ttl if cache_ttl is not None else _DEFAULT_CACHE_TTL
     now = time.time()
-    if _cache.topics and (now - _cache.fetched_at) < _CACHE_TTL:
+    if _cache.topics and (now - _cache.fetched_at) < ttl:
         return _cache
 
     topics: list[str] = []
@@ -111,14 +128,23 @@ def fetch_persona_context(handle: str) -> str:
         try:
             from duckduckgo_search import DDGS
 
-            with DDGS() as ddgs:
-                results = list(ddgs.text(q, max_results=3))
-                for r in results:
-                    body = r.get("body", "")
-                    if body:
-                        snippets.append(body[:200])
-        except Exception:
-            pass
+            @retry(
+                stop=stop_after_attempt(2),
+                wait=wait_exponential(multiplier=1, min=1, max=4),
+                retry=retry_if_exception_type(Exception),
+                reraise=True,
+            )
+            def _persona_search(query: str) -> list[dict]:
+                with DDGS() as ddgs:
+                    return list(ddgs.text(query, max_results=3))
+
+            results = _persona_search(q)
+            for r in results:
+                body = r.get("body", "")
+                if body:
+                    snippets.append(body[:200])
+        except Exception as exc:
+            logger.warning("Persona context search failed for %r after retries: %s", q, exc)
 
     if not snippets:
         return ""

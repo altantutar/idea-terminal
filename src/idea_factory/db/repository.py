@@ -180,3 +180,91 @@ def get_stats(conn: sqlite3.Connection) -> dict[str, Any]:
         "avg_composite_score": round(avg_score, 2) if avg_score else None,
         "total_feedback": feedback_count,
     }
+
+
+# ---------------------------------------------------------------------------
+# Token usage / cost tracking
+# ---------------------------------------------------------------------------
+
+def save_token_usage(
+    conn: sqlite3.Connection,
+    idea_id: int | None,
+    agent_name: str,
+    input_tokens: int,
+    output_tokens: int,
+    provider: str = "",
+    model: str = "",
+) -> None:
+    """Record token usage for one agent call."""
+    conn.execute(
+        """INSERT INTO token_usage (idea_id, agent_name, input_tokens, output_tokens, provider, model)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (idea_id, agent_name, input_tokens, output_tokens, provider, model),
+    )
+    conn.commit()
+
+
+def get_cost_summary(conn: sqlite3.Connection) -> dict[str, Any]:
+    """Aggregate token usage across all calls."""
+    totals = conn.execute(
+        "SELECT SUM(input_tokens) AS ti, SUM(output_tokens) AS to_ FROM token_usage"
+    ).fetchone()
+    by_agent: list[dict] = []
+    for row in conn.execute(
+        """SELECT agent_name,
+                  SUM(input_tokens) AS input_tokens,
+                  SUM(output_tokens) AS output_tokens,
+                  COUNT(*) AS calls
+           FROM token_usage
+           GROUP BY agent_name
+           ORDER BY (SUM(input_tokens) + SUM(output_tokens)) DESC"""
+    ):
+        by_agent.append(dict(row))
+
+    by_model: list[dict] = []
+    for row in conn.execute(
+        """SELECT provider, model,
+                  SUM(input_tokens) AS input_tokens,
+                  SUM(output_tokens) AS output_tokens,
+                  COUNT(*) AS calls
+           FROM token_usage
+           WHERE provider != ''
+           GROUP BY provider, model"""
+    ):
+        by_model.append(dict(row))
+
+    return {
+        "total_input_tokens": totals["ti"] or 0,
+        "total_output_tokens": totals["to_"] or 0,
+        "by_agent": by_agent,
+        "by_model": by_model,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Scoreboard persistence
+# ---------------------------------------------------------------------------
+
+def save_scoreboard_entry(conn: sqlite3.Connection, entry: dict) -> None:
+    """Upsert a scoreboard entry."""
+    conn.execute(
+        """INSERT INTO scoreboard (idea_name, composite_score, verdict, taste_decision, taste_rating)
+           VALUES (?, ?, ?, ?, ?)""",
+        (
+            entry.get("name", ""),
+            entry.get("composite_score", 0),
+            entry.get("verdict", ""),
+            entry.get("taste_decision", ""),
+            entry.get("taste_rating", 0),
+        ),
+    )
+    conn.commit()
+
+
+def get_scoreboard(conn: sqlite3.Connection, limit: int = 10) -> list[dict]:
+    """Return top scoreboard entries."""
+    rows = conn.execute(
+        "SELECT * FROM scoreboard ORDER BY composite_score DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+    return [dict(r) for r in rows]

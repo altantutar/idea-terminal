@@ -10,10 +10,12 @@ from rich.console import Console
 from rich.prompt import Prompt
 
 from idea_factory.config import Settings
+from idea_factory.logging_cfg import setup_logging
 from idea_factory.db import repository as repo
 from idea_factory.db.connection import get_db
 from idea_factory.display import (
     display_banner,
+    display_costs,
     display_domain_picker,
     display_idea_card,
     display_idea_detail,
@@ -69,6 +71,7 @@ def start(
         os.environ["IDEA_FACTORY_VERBOSE"] = "1"
 
     settings = Settings()
+    setup_logging(level=settings.log_level, log_file=settings.log_file)
     display_banner()
     _setup_provider(settings)
 
@@ -122,6 +125,7 @@ def livestream(
         os.environ["IDEA_FACTORY_VERBOSE"] = "1"
 
     settings = Settings()
+    setup_logging(level=settings.log_level, log_file=settings.log_file)
     _setup_provider(settings)
 
     # --- Persona selection ---
@@ -214,6 +218,16 @@ def stats() -> None:
     s = repo.get_stats(conn)
     conn.close()
     display_stats(s)
+
+
+@app.command()
+def costs() -> None:
+    """Show API token usage and estimated costs."""
+    settings = _get_settings_quiet()
+    conn = get_db(settings.db_path)
+    summary = repo.get_cost_summary(conn)
+    conn.close()
+    display_costs(summary)
 
 
 @app.command()

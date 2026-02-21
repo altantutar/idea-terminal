@@ -795,6 +795,76 @@ def display_claude_check(idea: dict, claude_check_output: dict) -> None:
     console.print()
 
 
+def display_costs(summary: dict[str, Any]) -> None:
+    """Show API token usage breakdown."""
+    total_in = summary.get("total_input_tokens", 0)
+    total_out = summary.get("total_output_tokens", 0)
+    total = total_in + total_out
+
+    if total == 0:
+        console.print(
+            Panel(
+                "[dim]No token usage recorded yet. Run some loops first![/dim]",
+                border_style="dim",
+                expand=False,
+            )
+        )
+        return
+
+    # Summary
+    summary_table = Table(show_header=False, box=None, padding=(0, 2), expand=False)
+    summary_table.add_column("label", style="bold")
+    summary_table.add_column("value", justify="right")
+    summary_table.add_row("Input tokens", f"[bright_cyan]{total_in:,}[/bright_cyan]")
+    summary_table.add_row("Output tokens", f"[bright_cyan]{total_out:,}[/bright_cyan]")
+    summary_table.add_row("Total tokens", f"[bold bright_white]{total:,}[/bold bright_white]")
+
+    # By agent
+    agent_table = Table(box=box.SIMPLE_HEAVY, expand=False, padding=(0, 1))
+    agent_table.add_column("Agent", style="bold")
+    agent_table.add_column("Calls", justify="right")
+    agent_table.add_column("Input", justify="right")
+    agent_table.add_column("Output", justify="right")
+    agent_table.add_column("Total", justify="right", style="bold")
+
+    for row in summary.get("by_agent", []):
+        agent_table.add_row(
+            row["agent_name"],
+            str(row["calls"]),
+            f"{row['input_tokens']:,}",
+            f"{row['output_tokens']:,}",
+            f"{row['input_tokens'] + row['output_tokens']:,}",
+        )
+
+    # By model
+    model_lines: list[str] = []
+    for row in summary.get("by_model", []):
+        model_lines.append(
+            f"  [bold]{row['provider']}[/bold] / [dim]{row['model']}[/dim]  "
+            f"— {row['calls']} calls, "
+            f"[bright_cyan]{row['input_tokens'] + row['output_tokens']:,}[/bright_cyan] tokens"
+        )
+
+    parts: list[Any] = [summary_table, "", agent_table]
+    if model_lines:
+        parts.append("")
+        parts.append(Text.from_markup("[bold]By model:[/bold]"))
+        for line in model_lines:
+            parts.append(Text.from_markup(line))
+
+    body = Group(*[p if not isinstance(p, str) else Text.from_markup(p) for p in parts])
+    console.print(
+        Panel(
+            body,
+            title="[bold]API Token Usage[/bold]",
+            border_style="bright_cyan",
+            expand=False,
+            width=76,
+            padding=(1, 2),
+        )
+    )
+
+
 def display_scoreboard(scoreboard: list[dict]) -> None:
     """Show the top-10 scoreboard as a yellow-bordered table."""
     if not scoreboard:
