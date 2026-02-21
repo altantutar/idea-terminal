@@ -1,0 +1,182 @@
+"""CRUD operations for ideas, agent outputs, feedback, and preferences."""
+
+from __future__ import annotations
+
+import json
+import sqlite3
+from typing import Any
+
+
+# ---------------------------------------------------------------------------
+# Ideas
+# ---------------------------------------------------------------------------
+
+def save_idea(conn: sqlite3.Connection, idea: dict) -> int:
+    """Insert an idea row and return its id."""
+    cur = conn.execute(
+        """INSERT INTO ideas (name, one_liner, domain, problem, solution,
+                              target_user, monetization, region, tags)
+           VALUES (:name, :one_liner, :domain, :problem, :solution,
+                   :target_user, :monetization, :region, :tags)""",
+        {**idea, "tags": json.dumps(idea.get("tags", []))},
+    )
+    conn.commit()
+    return cur.lastrowid  # type: ignore[return-value]
+
+
+def update_idea_status(conn: sqlite3.Connection, idea_id: int, status: str, composite_score: float | None = None) -> None:
+    if composite_score is not None:
+        conn.execute(
+            "UPDATE ideas SET status = ?, composite_score = ? WHERE id = ?",
+            (status, composite_score, idea_id),
+        )
+    else:
+        conn.execute("UPDATE ideas SET status = ? WHERE id = ?", (status, idea_id))
+    conn.commit()
+
+
+def list_ideas(conn: sqlite3.Connection, status: str | None = None) -> list[dict]:
+    if status:
+        rows = conn.execute(
+            "SELECT * FROM ideas WHERE status = ? ORDER BY id DESC", (status,)
+        ).fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM ideas ORDER BY id DESC").fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_idea(conn: sqlite3.Connection, idea_id: int) -> dict | None:
+    row = conn.execute("SELECT * FROM ideas WHERE id = ?", (idea_id,)).fetchone()
+    return dict(row) if row else None
+
+
+# ---------------------------------------------------------------------------
+# Agent outputs
+# ---------------------------------------------------------------------------
+
+def save_agent_output(conn: sqlite3.Connection, idea_id: int, agent_name: str, output: dict) -> int:
+    cur = conn.execute(
+        "INSERT INTO agent_outputs (idea_id, agent_name, output_json) VALUES (?, ?, ?)",
+        (idea_id, agent_name, json.dumps(output)),
+    )
+    conn.commit()
+    return cur.lastrowid  # type: ignore[return-value]
+
+
+def get_agent_outputs(conn: sqlite3.Connection, idea_id: int) -> list[dict]:
+    rows = conn.execute(
+        "SELECT * FROM agent_outputs WHERE idea_id = ? ORDER BY id", (idea_id,)
+    ).fetchall()
+    results = []
+    for r in rows:
+        d = dict(r)
+        d["output"] = json.loads(d["output_json"])
+        results.append(d)
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Feedback
+# ---------------------------------------------------------------------------
+
+def save_feedback(conn: sqlite3.Connection, idea_id: int, feedback: dict) -> int:
+    cur = conn.execute(
+        "INSERT INTO feedback (idea_id, decision, rating, tags, note) VALUES (?, ?, ?, ?, ?)",
+        (idea_id, feedback["decision"], feedback["rating"],
+         json.dumps(feedback.get("tags", [])), feedback.get("note", "")),
+    )
+    conn.commit()
+    return cur.lastrowid  # type: ignore[return-value]
+
+
+# ---------------------------------------------------------------------------
+# Preferences
+# ---------------------------------------------------------------------------
+
+def load_preferences(conn: sqlite3.Connection) -> dict[str, Any]:
+    rows = conn.execute("SELECT key, value_json FROM preferences").fetchall()
+    return {r["key"]: json.loads(r["value_json"]) for r in rows}
+
+
+def save_preference(conn: sqlite3.Connection, key: str, value: Any) -> None:
+    conn.execute(
+        """INSERT INTO preferences (key, value_json, updated_at)
+           VALUES (?, ?, datetime('now'))
+           ON CONFLICT(key) DO UPDATE SET value_json = excluded.value_json,
+                                          updated_at = excluded.updated_at""",
+        (key, json.dumps(value)),
+    )
+    conn.commit()
+
+
+def reset_preferences(conn: sqlite3.Connection) -> None:
+    conn.execute("DELETE FROM preferences")
+    conn.commit()
+
+
+# ---------------------------------------------------------------------------
+# Sessions
+# ---------------------------------------------------------------------------
+
+def save_session(conn: sqlite3.Connection, region: str, domains: list[str], constraints: str) -> int:
+    """Insert a new session row and return its id."""
+    cur = conn.execute(
+        "INSERT INTO sessions (region, domains, constraints) VALUES (?, ?, ?)",
+        (region, json.dumps(domains), constraints),
+    )
+    conn.commit()
+    return cur.lastrowid  # type: ignore[return-value]
+
+
+def get_latest_session(conn: sqlite3.Connection) -> dict | None:
+    """Return the most recent session, or None."""
+    row = conn.execute(
+        "SELECT * FROM sessions ORDER BY id DESC LIMIT 1"
+    ).fetchone()
+    if not row:
+        return None
+    d = dict(row)
+    d["domains"] = json.loads(d["domains"])
+    return d
+
+
+def update_session_progress(conn: sqlite3.Connection, session_id: int, loop_num: int, total_winners: int) -> None:
+    """Persist loop progress for the given session."""
+    conn.execute(
+        "UPDATE sessions SET loop_num = ?, total_winners = ?, updated_at = datetime('now') WHERE id = ?",
+        (loop_num, total_winners, session_id),
+    )
+    conn.commit()
+
+
+def get_recent_rejections(conn: sqlite3.Connection, session_id: int) -> list[str]:
+    """Return names of killed ideas created after the session started."""
+    rows = conn.execute(
+        """SELECT i.name FROM ideas i
+           JOIN sessions s ON s.id = ?
+           WHERE i.status = 'killed' AND i.created_at >= s.created_at
+           ORDER BY i.id DESC""",
+        (session_id,),
+    ).fetchall()
+    return [r["name"] for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# Stats
+# ---------------------------------------------------------------------------
+
+def get_stats(conn: sqlite3.Connection) -> dict[str, Any]:
+    total = conn.execute("SELECT COUNT(*) AS c FROM ideas").fetchone()["c"]
+    by_status: dict[str, int] = {}
+    for row in conn.execute("SELECT status, COUNT(*) AS c FROM ideas GROUP BY status"):
+        by_status[row["status"]] = row["c"]
+    avg_score = conn.execute(
+        "SELECT AVG(composite_score) AS a FROM ideas WHERE composite_score IS NOT NULL"
+    ).fetchone()["a"]
+    feedback_count = conn.execute("SELECT COUNT(*) AS c FROM feedback").fetchone()["c"]
+    return {
+        "total_ideas": total,
+        "by_status": by_status,
+        "avg_composite_score": round(avg_score, 2) if avg_score else None,
+        "total_feedback": feedback_count,
+    }
