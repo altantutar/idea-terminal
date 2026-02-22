@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS ideas (
     monetization TEXT NOT NULL,
     region      TEXT NOT NULL,
     tags        TEXT NOT NULL DEFAULT '[]',
+    inspired_by TEXT NOT NULL DEFAULT '[]',
     status      TEXT NOT NULL DEFAULT 'pending',
     composite_score REAL,
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
@@ -87,4 +88,10 @@ def get_db(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     conn.executescript(_SCHEMA)
+    # Migration: add inspired_by column if it doesn't exist (for existing DBs)
+    try:
+        conn.execute("SELECT inspired_by FROM ideas LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE ideas ADD COLUMN inspired_by TEXT NOT NULL DEFAULT '[]'")
+        conn.commit()
     return conn

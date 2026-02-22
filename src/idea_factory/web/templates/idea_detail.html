@@ -60,6 +60,27 @@
             <p>{{ idea.solution }}</p>
         </div>
     </div>
+
+    {% if idea.inspired_by %}
+    <div class="inspired-by-section">
+        <h4>Inspired by</h4>
+        <div class="source-list">
+            {% for src in idea.inspired_by %}
+            <div class="source-item">
+                <span class="source-platform">{{ src.platform if src is mapping else "Web" }}</span>
+                {% if src is mapping and src.url %}
+                <a href="{{ src.url }}" target="_blank" rel="noopener noreferrer" class="source-link">
+                    {{ src.title if src is mapping else src }}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+                {% else %}
+                <span class="source-title">{{ src.title if src is mapping else src }}</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Agent output panels -->

@@ -15,10 +15,14 @@ def save_idea(conn: sqlite3.Connection, idea: dict) -> int:
     """Insert an idea row and return its id."""
     cur = conn.execute(
         """INSERT INTO ideas (name, one_liner, domain, problem, solution,
-                              target_user, monetization, region, tags)
+                              target_user, monetization, region, tags, inspired_by)
            VALUES (:name, :one_liner, :domain, :problem, :solution,
-                   :target_user, :monetization, :region, :tags)""",
-        {**idea, "tags": json.dumps(idea.get("tags", []))},
+                   :target_user, :monetization, :region, :tags, :inspired_by)""",
+        {
+            **idea,
+            "tags": json.dumps(idea.get("tags", [])),
+            "inspired_by": json.dumps(idea.get("inspired_by", [])),
+        },
     )
     conn.commit()
     return cur.lastrowid  # type: ignore[return-value]

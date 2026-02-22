@@ -17,13 +17,18 @@ router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 
-def _parse_tags(tags):
-    if isinstance(tags, str):
+def _parse_json_field(value):
+    """Parse a JSON field that may be a string or already parsed."""
+    if isinstance(value, str):
         try:
-            return json.loads(tags)
+            return json.loads(value)
         except json.JSONDecodeError:
             return []
-    return tags or []
+    return value or []
+
+
+def _parse_tags(tags):
+    return _parse_json_field(tags)
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -35,6 +40,7 @@ def dashboard(
     ideas = repo.list_ideas(conn, status)
     for idea in ideas:
         idea["tags"] = _parse_tags(idea.get("tags"))
+        idea["inspired_by"] = _parse_json_field(idea.get("inspired_by"))
     stats = repo.get_stats(conn)
     return templates.TemplateResponse(
         "dashboard.html",
@@ -58,6 +64,7 @@ def idea_detail(
         return HTMLResponse("<h1>Idea not found</h1>", status_code=404)
     idea = dict(idea)
     idea["tags"] = _parse_tags(idea.get("tags"))
+    idea["inspired_by"] = _parse_json_field(idea.get("inspired_by"))
     outputs = repo.get_agent_outputs(conn, idea_id)
     # Parse output JSON
     parsed_outputs = []

@@ -41,7 +41,9 @@ def creator_prompt(
         f"{trending_block}\n\n"
         'Respond with JSON: {{"ideas": [{{...}}, ...]}}\n'
         "Each idea must have: name, one_liner, domain, problem, solution, "
-        "target_user, monetization, region, tags (list of strings)."
+        "target_user, monetization, region, tags (list of strings), "
+        'inspired_by (list of {{"title": "...", "url": "...", "platform": "..."}} '
+        "objects for sources that inspired this idea — can be empty if original)."
     )
     return system, user
 

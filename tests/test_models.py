@@ -13,6 +13,7 @@ from idea_factory.models import (
     CreatorOutput,
     DistributorOutput,
     IdeaSchema,
+    InspirationSourceSchema,
     JudgeOutput,
     JudgeScores,
     ReflectionOutput,
@@ -53,6 +54,65 @@ class TestIdeaSchema:
     def test_missing_required_field(self):
         with pytest.raises(ValidationError):
             IdeaSchema(name="X", one_liner="Y")  # type: ignore[call-arg]
+
+    def test_default_inspired_by(self):
+        idea = IdeaSchema(
+            name="X",
+            one_liner="Y",
+            domain="d",
+            problem="p",
+            solution="s",
+            target_user="u",
+            monetization="m",
+            region="r",
+        )
+        assert idea.inspired_by == []
+
+    def test_inspired_by_with_sources(self):
+        idea = IdeaSchema(
+            name="TestApp",
+            one_liner="A test application",
+            domain="saas",
+            problem="Testing is hard",
+            solution="Automate it",
+            target_user="Developers",
+            monetization="SaaS subscription",
+            region="Global",
+            tags=["testing"],
+            inspired_by=[
+                InspirationSourceSchema(
+                    title="HN: New testing framework",
+                    url="https://news.ycombinator.com/item?id=123",
+                    platform="Hacker News",
+                ),
+                InspirationSourceSchema(
+                    title="Product Hunt launch",
+                    url="https://producthunt.com/posts/test",
+                    platform="Product Hunt",
+                ),
+            ],
+        )
+        assert len(idea.inspired_by) == 2
+        assert idea.inspired_by[0].platform == "Hacker News"
+        assert idea.inspired_by[1].url == "https://producthunt.com/posts/test"
+
+
+class TestInspirationSourceSchema:
+    def test_valid_source(self):
+        src = InspirationSourceSchema(
+            title="Test Article",
+            url="https://example.com/article",
+            platform="TechCrunch",
+        )
+        assert src.title == "Test Article"
+        assert src.url == "https://example.com/article"
+        assert src.platform == "TechCrunch"
+
+    def test_defaults(self):
+        src = InspirationSourceSchema(title="Just a title")
+        assert src.title == "Just a title"
+        assert src.url == ""
+        assert src.platform == ""
 
 
 class TestCreatorOutput:

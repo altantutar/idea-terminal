@@ -218,6 +218,27 @@ def display_idea_card(idea: dict, judge_output: dict | None = None) -> None:
     parts.append(f"[bold]Problem:[/bold]  {idea.get('problem', '')}")
     parts.append(f"[bold]Solution:[/bold] {idea.get('solution', '')}")
 
+    # Inspiration sources
+    inspired_by = idea.get("inspired_by", [])
+    if isinstance(inspired_by, str):
+        try:
+            inspired_by = json.loads(inspired_by)
+        except json.JSONDecodeError:
+            inspired_by = []
+    if inspired_by:
+        parts.append("")
+        parts.append("[bold]Inspired by:[/bold]")
+        for src in inspired_by:
+            if isinstance(src, dict):
+                platform = src.get("platform", "Web")
+                title = src.get("title", "")
+                url = src.get("url", "")
+                if url:
+                    parts.append(f"  [dim][{platform}][/dim] {title}")
+                    parts.append(f"  [dim cyan]{url}[/dim cyan]")
+                else:
+                    parts.append(f"  [dim][{platform}][/dim] {title}")
+
     if score_table:
         parts.append("")
         parts.append(Text("─" * 50, style="dim"))

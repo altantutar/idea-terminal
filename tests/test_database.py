@@ -149,6 +149,63 @@ class TestIdeaCRUD:
         assert len(winners) == 1
         assert winners[0]["name"] == "A"
 
+    def test_save_idea_with_inspired_by(self, db_conn):
+        """Test that inspired_by sources are saved and retrieved correctly."""
+        idea = {
+            "name": "SourcedIdea",
+            "one_liner": "An idea with sources",
+            "domain": "saas",
+            "problem": "Testing",
+            "solution": "Automate",
+            "target_user": "Devs",
+            "monetization": "Sub",
+            "region": "Global",
+            "tags": ["test"],
+            "inspired_by": [
+                {
+                    "title": "HN: New testing framework",
+                    "url": "https://news.ycombinator.com/item?id=123",
+                    "platform": "Hacker News",
+                },
+                {
+                    "title": "Product Hunt launch",
+                    "url": "https://producthunt.com/posts/test",
+                    "platform": "Product Hunt",
+                },
+            ],
+        }
+        idea_id = repo.save_idea(db_conn, idea)
+        assert idea_id > 0
+
+        fetched = repo.get_idea(db_conn, idea_id)
+        assert fetched is not None
+        import json
+
+        inspired_by = json.loads(fetched["inspired_by"])
+        assert len(inspired_by) == 2
+        assert inspired_by[0]["platform"] == "Hacker News"
+        assert inspired_by[1]["url"] == "https://producthunt.com/posts/test"
+
+    def test_save_idea_without_inspired_by(self, db_conn):
+        """Test that ideas without inspired_by still work."""
+        idea = {
+            "name": "NoSources",
+            "one_liner": "An idea without sources",
+            "domain": "saas",
+            "problem": "Testing",
+            "solution": "Automate",
+            "target_user": "Devs",
+            "monetization": "Sub",
+            "region": "Global",
+            "tags": [],
+        }
+        idea_id = repo.save_idea(db_conn, idea)
+        fetched = repo.get_idea(db_conn, idea_id)
+        import json
+
+        inspired_by = json.loads(fetched["inspired_by"])
+        assert inspired_by == []
+
 
 class TestAgentOutputs:
     def test_save_and_get(self, db_conn):

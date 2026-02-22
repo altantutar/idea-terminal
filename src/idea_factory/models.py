@@ -5,6 +5,19 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
+# Inspiration source for attribution
+# ---------------------------------------------------------------------------
+
+
+class InspirationSourceSchema(BaseModel):
+    """A source that inspired a startup idea."""
+
+    title: str = Field(description="Title of the source article/post")
+    url: str = Field(default="", description="URL of the source")
+    platform: str = Field(default="", description="Platform name (e.g. Product Hunt, HN)")
+
+
+# ---------------------------------------------------------------------------
 # Creator output
 # ---------------------------------------------------------------------------
 
@@ -21,6 +34,9 @@ class IdeaSchema(BaseModel):
     monetization: str = Field(description="Revenue model")
     region: str = Field(description="Target region/market")
     tags: list[str] = Field(default_factory=list, description="Keyword tags")
+    inspired_by: list[InspirationSourceSchema] = Field(
+        default_factory=list, description="Sources that inspired this idea"
+    )
 
 
 class CreatorOutput(BaseModel):
