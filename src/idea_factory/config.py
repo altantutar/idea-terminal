@@ -23,6 +23,25 @@ DEFAULT_MODELS = {
     "openai": "gpt-4o",
 }
 
+DOMAIN_CHOICES = [
+    "Software engineering",
+    "Back-office automation",
+    "Marketing and copywriting",
+    "Sales and CRM",
+    "Finance and accounting",
+    "Data analysis and BI",
+    "Academic research",
+    "Cybersecurity",
+    "Customer service",
+    "Gaming and interactive media",
+    "Document and presentation creation",
+    "Education and tutoring",
+    "E-commerce operations",
+    "Medicine and healthcare",
+    "Legal",
+    "Travel and logistics",
+]
+
 
 def _env_int(key: str, default: int) -> int:
     """Read an env var as int, falling back to *default*."""

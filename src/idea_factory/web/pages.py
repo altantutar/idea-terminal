@@ -83,7 +83,7 @@ def idea_detail(
 
 @router.get("/run", response_class=HTMLResponse)
 def run_page(request: Request):
-    from idea_factory.cli import DOMAIN_CHOICES
+    from idea_factory.config import DOMAIN_CHOICES
     from idea_factory.web.deps import get_settings
 
     settings = get_settings()

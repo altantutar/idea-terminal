@@ -88,7 +88,9 @@ class RunState:
         self.status = "running"
         self.emit(EventType.LOG, {"message": "Run starting..."})
 
-        settings = Settings()
+        from idea_factory.web.deps import get_settings
+
+        settings = get_settings()
         conn = get_db(settings.db_path)
 
         try:

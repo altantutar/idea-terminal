@@ -9,7 +9,7 @@ import typer
 from rich.console import Console
 from rich.prompt import Prompt
 
-from idea_factory.config import Settings
+from idea_factory.config import DOMAIN_CHOICES, Settings
 from idea_factory.db import repository as repo
 from idea_factory.db.connection import get_db
 from idea_factory.display import (
@@ -39,25 +39,6 @@ prefs_app = typer.Typer(help="Manage learned preferences.")
 app.add_typer(prefs_app, name="prefs")
 
 console = Console()
-
-DOMAIN_CHOICES = [
-    "Software engineering",
-    "Back-office automation",
-    "Marketing and copywriting",
-    "Sales and CRM",
-    "Finance and accounting",
-    "Data analysis and BI",
-    "Academic research",
-    "Cybersecurity",
-    "Customer service",
-    "Gaming and interactive media",
-    "Document and presentation creation",
-    "Education and tutoring",
-    "E-commerce operations",
-    "Medicine and healthcare",
-    "Legal",
-    "Travel and logistics",
-]
 
 
 @app.command()
