@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from unittest import mock
 
 import pytest
 
-from idea_factory.config import Settings, _env_int, _env_float
+from idea_factory.config import Settings, _env_float, _env_int
 
 
 class TestEnvHelpers:

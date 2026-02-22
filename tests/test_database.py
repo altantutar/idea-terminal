@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import sqlite3
 import tempfile
 from pathlib import Path
 
 import pytest
 
-from idea_factory.db.connection import get_db
 from idea_factory.db import repository as repo
+from idea_factory.db.connection import get_db
 
 
 @pytest.fixture
