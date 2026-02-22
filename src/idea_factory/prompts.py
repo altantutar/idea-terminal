@@ -67,8 +67,7 @@ def creator_prompt(
             else:
                 items.append(f"- {r}")
         rejection_block = (
-            "\n\n== REJECTED CONCEPTS (do NOT regenerate these or similar) ==\n"
-            + "\n".join(items)
+            "\n\n== REJECTED CONCEPTS (do NOT regenerate these or similar) ==\n" + "\n".join(items)
         )
     trending_block = ""
     if trending_prefix:
@@ -237,8 +236,7 @@ def judge_prompt(
             for c in historical_concepts[:10]
         ]
         historical_block = (
-            "\n\n== PREVIOUSLY SEEN CONCEPTS (for novelty comparison) ==\n"
-            + "\n".join(items)
+            "\n\n== PREVIOUSLY SEEN CONCEPTS (for novelty comparison) ==\n" + "\n".join(items)
         )
     user = (
         f"Judge this startup idea based on all evaluations:\n\n"

@@ -28,6 +28,7 @@ from idea_factory.display import (
     display_scoreboard,
     display_taste_feedback,
 )
+from idea_factory.llm.base import LLMProvider
 from idea_factory.llm.factory import get_provider
 from idea_factory.models import ConceptFingerprint
 from idea_factory.preferences import (
@@ -72,11 +73,14 @@ def _track_usage(conn, agent, idea_id, settings):
         )
 
 
-def _generate_concept_fingerprint(provider, idea_dict: dict) -> ConceptFingerprint | None:
+def _generate_concept_fingerprint(
+    provider: LLMProvider, idea_dict: dict
+) -> ConceptFingerprint | None:
     """Generate a concept fingerprint for an idea. Returns None on failure (non-critical)."""
     try:
         sys_p, usr_p = concept_fingerprint_prompt(idea_dict)
-        return provider.generate(sys_p, usr_p, ConceptFingerprint)
+        result: ConceptFingerprint = provider.generate(sys_p, usr_p, ConceptFingerprint)
+        return result
     except Exception:
         return None
 

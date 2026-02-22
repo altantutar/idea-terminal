@@ -95,9 +95,7 @@ class TestUpdatePreferences:
         fb = {"decision": "hate", "rating": 1}
         prefs = update_preferences(prefs, fb, idea)
         prefs = update_preferences(prefs, fb, idea)
-        names = [
-            (item["name"] if isinstance(item, dict) else item) for item in prefs.hard_nos
-        ]
+        names = [(item["name"] if isinstance(item, dict) else item) for item in prefs.hard_nos]
         assert names.count("X") == 1
 
 

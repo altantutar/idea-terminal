@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass, field
+from typing import Any
 
 from idea_factory.db import repository as repo
 
@@ -15,7 +16,7 @@ class PreferenceState:
     domain_weights: dict[str, float] = field(default_factory=dict)
     reject_tag_weights: dict[str, float] = field(default_factory=dict)
     channel_weights: dict[str, float] = field(default_factory=dict)
-    hard_nos: list[str] = field(default_factory=list)
+    hard_nos: list[Any] = field(default_factory=list)
     archetype_weights: dict[str, float] = field(default_factory=dict)
 
 
