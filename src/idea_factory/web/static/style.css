@@ -1059,9 +1059,12 @@ input, select, textarea, button {
 .config-card-header {
     padding: 16px 20px;
     border-bottom: 1px solid #E5E7EB;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
-.config-card-header span {
+.config-card-header > span:first-child {
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;

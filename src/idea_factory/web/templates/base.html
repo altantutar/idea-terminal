@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v={{ request.app.state.static_versions.get('style.css', '0') }}">
 </head>
 <body>
     <!-- Sidebar -->
@@ -75,7 +75,7 @@
         </main>
     </div>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v={{ request.app.state.static_versions.get('app.js', '0') }}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

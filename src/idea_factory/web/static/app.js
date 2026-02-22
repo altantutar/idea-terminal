@@ -15,17 +15,26 @@ if (btnSaveKey) {
     btnSaveKey.addEventListener('click', async () => {
         const selected = document.querySelector('input[name="provider"]:checked');
         const apiKeyInput = document.getElementById('api-key');
-        if (!selected || !apiKeyInput) return;
+
+        if (!selected) {
+            if (keyError) { keyError.textContent = 'Please select a provider.'; keyError.style.display = 'block'; }
+            return;
+        }
+        if (!apiKeyInput) {
+            if (keyError) { keyError.textContent = 'API key input not found.'; keyError.style.display = 'block'; }
+            return;
+        }
 
         const provider = selected.value;
         const apiKey = apiKeyInput.value.trim();
 
         if (!apiKey) {
-            if (keyError) { keyError.textContent = 'API key is required.'; keyError.style.display = ''; }
+            if (keyError) { keyError.textContent = 'API key is required.'; keyError.style.display = 'block'; }
             return;
         }
 
         btnSaveKey.disabled = true;
+        btnSaveKey.textContent = 'Saving...';
 
         try {
             const res = await fetch('/api/provider', {
@@ -33,12 +42,18 @@ if (btnSaveKey) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ provider, api_key: apiKey }),
             });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error('Server error: ' + res.status + ' ' + errText);
+            }
+
             const data = await res.json();
 
             if (data.has_key) {
-                // Switch to connected view
+                /* Switch to connected view */
                 if (providerStatus) providerStatus.style.display = 'none';
-                if (providerConnected) providerConnected.style.display = '';
+                if (providerConnected) providerConnected.style.display = 'block';
                 if (providerBadge) { providerBadge.textContent = 'CONNECTED'; providerBadge.className = 'badge badge-winner'; }
 
                 const cp = document.getElementById('connected-provider');
@@ -46,17 +61,20 @@ if (btnSaveKey) {
                 if (cp) cp.textContent = data.provider;
                 if (cm) cm.textContent = data.model;
 
-                // Enable start button
-                if (btnStart) btnStart.disabled = false;
+                /* Enable start button */
+                const start = document.getElementById('btn-start');
+                if (start) start.disabled = false;
 
                 if (keyError) keyError.style.display = 'none';
             } else {
-                if (keyError) { keyError.textContent = 'Failed to save key.'; keyError.style.display = ''; }
+                if (keyError) { keyError.textContent = 'Failed to save key — server returned has_key=false.'; keyError.style.display = 'block'; }
             }
         } catch (err) {
-            if (keyError) { keyError.textContent = 'Error: ' + err.message; keyError.style.display = ''; }
+            console.error('Provider save error:', err);
+            if (keyError) { keyError.textContent = 'Error: ' + err.message; keyError.style.display = 'block'; }
         } finally {
             btnSaveKey.disabled = false;
+            btnSaveKey.textContent = 'Save Key';
         }
     });
 }
@@ -64,7 +82,7 @@ if (btnSaveKey) {
 if (btnChangeProvider) {
     btnChangeProvider.addEventListener('click', () => {
         if (providerConnected) providerConnected.style.display = 'none';
-        if (providerStatus) providerStatus.style.display = '';
+        if (providerStatus) providerStatus.style.display = 'block';
     });
 }
 
