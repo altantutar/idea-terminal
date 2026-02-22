@@ -36,12 +36,15 @@ def dashboard(
     for idea in ideas:
         idea["tags"] = _parse_tags(idea.get("tags"))
     stats = repo.get_stats(conn)
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
-        "ideas": ideas,
-        "stats": stats,
-        "current_status": status,
-    })
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "ideas": ideas,
+            "stats": stats,
+            "current_status": status,
+        },
+    )
 
 
 @router.get("/ideas/{idea_id}", response_class=HTMLResponse)
@@ -68,11 +71,14 @@ def idea_detail(
                 pass
         d["output"] = raw
         parsed_outputs.append(d)
-    return templates.TemplateResponse("idea_detail.html", {
-        "request": request,
-        "idea": idea,
-        "outputs": parsed_outputs,
-    })
+    return templates.TemplateResponse(
+        "idea_detail.html",
+        {
+            "request": request,
+            "idea": idea,
+            "outputs": parsed_outputs,
+        },
+    )
 
 
 @router.get("/run", response_class=HTMLResponse)
@@ -81,13 +87,16 @@ def run_page(request: Request):
     from idea_factory.web.deps import get_settings
 
     settings = get_settings()
-    return templates.TemplateResponse("run.html", {
-        "request": request,
-        "domain_choices": DOMAIN_CHOICES,
-        "provider": settings.llm_provider,
-        "model": settings.model,
-        "has_key": bool(settings.active_api_key()),
-    })
+    return templates.TemplateResponse(
+        "run.html",
+        {
+            "request": request,
+            "domain_choices": DOMAIN_CHOICES,
+            "provider": settings.llm_provider,
+            "model": settings.model,
+            "has_key": bool(settings.active_api_key()),
+        },
+    )
 
 
 @router.get("/costs", response_class=HTMLResponse)
@@ -96,7 +105,10 @@ def costs_page(
     conn: sqlite3.Connection = Depends(get_conn),
 ):
     summary = repo.get_cost_summary(conn)
-    return templates.TemplateResponse("costs.html", {
-        "request": request,
-        "summary": summary,
-    })
+    return templates.TemplateResponse(
+        "costs.html",
+        {
+            "request": request,
+            "summary": summary,
+        },
+    )

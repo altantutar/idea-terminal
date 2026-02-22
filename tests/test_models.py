@@ -60,8 +60,14 @@ class TestCreatorOutput:
         out = CreatorOutput(
             ideas=[
                 IdeaSchema(
-                    name="A", one_liner="B", domain="d", problem="p",
-                    solution="s", target_user="u", monetization="m", region="r",
+                    name="A",
+                    one_liner="B",
+                    domain="d",
+                    problem="p",
+                    solution="s",
+                    target_user="u",
+                    monetization="m",
+                    region="r",
                 )
             ]
         )
@@ -134,8 +140,11 @@ class TestJudgeOutput:
     def test_valid(self):
         out = JudgeOutput(
             scores=JudgeScores(
-                novelty=8, feasibility=7, market_potential=9,
-                defensibility=6, excitement=8,
+                novelty=8,
+                feasibility=7,
+                market_potential=9,
+                defensibility=6,
+                excitement=8,
             ),
             composite_score=7.5,
             verdict="WINNER",
@@ -147,8 +156,11 @@ class TestJudgeOutput:
     def test_score_out_of_range(self):
         with pytest.raises(ValidationError):
             JudgeScores(
-                novelty=11, feasibility=7, market_potential=9,
-                defensibility=6, excitement=8,
+                novelty=11,
+                feasibility=7,
+                market_potential=9,
+                defensibility=6,
+                excitement=8,
             )
 
 

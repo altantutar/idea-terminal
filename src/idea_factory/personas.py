@@ -92,6 +92,7 @@ TYPE_NAMES: list[str] = list(TYPE_PERSONAS.keys())
 # Resolution
 # ---------------------------------------------------------------------------
 
+
 def resolve_persona(user_input: str, web_context: str = "") -> tuple[str, str]:
     """Resolve user input to (label, persona_description).
 

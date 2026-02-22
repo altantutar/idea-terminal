@@ -38,9 +38,7 @@ def run_with_reflexion(
     for round_num in range(1, max_rounds + 1):
         # Build the reflection prompt from the current output.
         try:
-            ref_system, ref_user = reflection_prompt_fn(
-                context, output.model_dump()
-            )
+            ref_system, ref_user = reflection_prompt_fn(context, output.model_dump())
         except Exception as exc:
             logger.warning("Reflection prompt build failed (round %d): %s", round_num, exc)
             break
@@ -58,9 +56,7 @@ def run_with_reflexion(
             break
 
         if reflection.is_satisfactory:
-            console.print(
-                f"  [dim]Reflection round {round_num}: satisfactory[/dim]"
-            )
+            console.print(f"  [dim]Reflection round {round_num}: satisfactory[/dim]")
             break
 
         # Not satisfactory — re-run the agent with critique appended.
@@ -79,9 +75,7 @@ def run_with_reflexion(
                 "[END REFLECTION FEEDBACK]"
             )
             augmented_user = user_prompt + critique_block
-            output = agent.provider.generate(
-                system_prompt, augmented_user, agent.output_model()
-            )
+            output = agent.provider.generate(system_prompt, augmented_user, agent.output_model())
         except ValueError as exc:
             logger.warning("Re-run parse failed (round %d): %s", round_num, exc)
             console.print(

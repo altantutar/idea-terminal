@@ -50,21 +50,16 @@ class Settings:
     """Application settings sourced from env vars with sensible defaults."""
 
     def __init__(self) -> None:
-        self.llm_provider: str = os.getenv(
-            "IDEA_FACTORY_LLM_PROVIDER", "anthropic"
-        ).lower()
+        self.llm_provider: str = os.getenv("IDEA_FACTORY_LLM_PROVIDER", "anthropic").lower()
         if self.llm_provider not in ("anthropic", "openai"):
             raise ValueError(
-                f"Unsupported LLM provider: {self.llm_provider}. "
-                "Use 'anthropic' or 'openai'."
+                f"Unsupported LLM provider: {self.llm_provider}. Use 'anthropic' or 'openai'."
             )
 
         self.anthropic_api_key: str | None = os.getenv("ANTHROPIC_API_KEY")
         self.openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
 
-        self.model: str = os.getenv(
-            "IDEA_FACTORY_MODEL", DEFAULT_MODELS[self.llm_provider]
-        )
+        self.model: str = os.getenv("IDEA_FACTORY_MODEL", DEFAULT_MODELS[self.llm_provider])
 
         self.db_path: Path = Path(
             os.getenv("IDEA_FACTORY_DB_PATH", str(Path.home() / ".idea-factory" / "ideas.db"))

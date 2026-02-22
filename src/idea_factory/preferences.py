@@ -68,9 +68,7 @@ def update_preferences(
     for tag in idea.get("tags", []):
         if isinstance(tag, str):
             if decision in ("hate", "meh"):
-                prefs.reject_tag_weights[tag] = (
-                    prefs.reject_tag_weights.get(tag, 0.0) + abs(mult)
-                )
+                prefs.reject_tag_weights[tag] = prefs.reject_tag_weights.get(tag, 0.0) + abs(mult)
             else:
                 # Reduce reject weight if the user likes ideas with this tag
                 prefs.reject_tag_weights[tag] = max(
@@ -81,9 +79,7 @@ def update_preferences(
     if judge_output:
         archetype = judge_output.get("archetype", "")
         if archetype:
-            prefs.archetype_weights[archetype] = (
-                prefs.archetype_weights.get(archetype, 0.0) + mult
-            )
+            prefs.archetype_weights[archetype] = prefs.archetype_weights.get(archetype, 0.0) + mult
 
     # Hard no on hate
     if decision == "hate":
@@ -104,9 +100,7 @@ def build_taste_prefix(prefs: PreferenceState) -> str:
         key=lambda x: -x[1],
     )
     if liked:
-        lines.append(
-            "Preferred domains: " + ", ".join(d for d, _ in liked[:5])
-        )
+        lines.append("Preferred domains: " + ", ".join(d for d, _ in liked[:5]))
 
     # Avoided domains
     disliked = sorted(
@@ -114,9 +108,7 @@ def build_taste_prefix(prefs: PreferenceState) -> str:
         key=lambda x: x[1],
     )
     if disliked:
-        lines.append(
-            "Avoid domains: " + ", ".join(d for d, _ in disliked[:5])
-        )
+        lines.append("Avoid domains: " + ", ".join(d for d, _ in disliked[:5]))
 
     # Tags to avoid
     bad_tags = sorted(
@@ -124,9 +116,7 @@ def build_taste_prefix(prefs: PreferenceState) -> str:
         key=lambda x: -x[1],
     )
     if bad_tags:
-        lines.append(
-            "Avoid tags/themes: " + ", ".join(t for t, _ in bad_tags[:8])
-        )
+        lines.append("Avoid tags/themes: " + ", ".join(t for t, _ in bad_tags[:8]))
 
     # Preferred archetypes
     liked_arch = sorted(
@@ -134,14 +124,8 @@ def build_taste_prefix(prefs: PreferenceState) -> str:
         key=lambda x: -x[1],
     )
     if liked_arch:
-        lines.append(
-            "Preferred idea archetypes: " + ", ".join(a for a, _ in liked_arch[:5])
-        )
+        lines.append("Preferred idea archetypes: " + ", ".join(a for a, _ in liked_arch[:5]))
 
     if not lines:
         return ""
-    return (
-        "\n\nUser taste profile:\n"
-        + "\n".join(f"- {line}" for line in lines)
-        + "\n"
-    )
+    return "\n\nUser taste profile:\n" + "\n".join(f"- {line}" for line in lines) + "\n"

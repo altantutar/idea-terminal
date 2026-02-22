@@ -111,13 +111,15 @@ def run_loop(
             # ----- CREATOR -----
             taste_prefix = build_taste_prefix(prefs)
             with agent_status("creator"):
-                creator_out = creator.run({
-                    "region": region,
-                    "domains": domains,
-                    "constraints": constraints,
-                    "taste_prefix": taste_prefix,
-                    "recent_rejections": recent_rejections,
-                })
+                creator_out = creator.run(
+                    {
+                        "region": region,
+                        "domains": domains,
+                        "constraints": constraints,
+                        "taste_prefix": taste_prefix,
+                        "recent_rejections": recent_rejections,
+                    }
+                )
             ideas = creator_out.ideas  # type: ignore[attr-defined]
             _track_usage(conn, creator, None, settings)
             console.print(f"  [bold green]{len(ideas)} ideas generated[/bold green]\n")
@@ -138,7 +140,8 @@ def run_loop(
                         agent=challenger,
                         context={"idea": idea_dict},
                         reflection_prompt_fn=lambda ctx, out: challenger_reflection_prompt(
-                            idea=ctx["idea"], challenger_output=out,
+                            idea=ctx["idea"],
+                            challenger_output=out,
                         ),
                         max_rounds=settings.reflexion_max_rounds,
                     )
@@ -180,7 +183,7 @@ def run_loop(
             # ----- FULL PIPELINE for each survivor -----
             finalists: list[tuple[dict, dict]] = []  # (idea, judge_dict)
             for idea_dict, ch_dict in top_survivors:
-                name = idea_dict['name']
+                name = idea_dict["name"]
                 console.rule(
                     f"[bold bright_white]{name}[/bold bright_white]",
                     style="dim",
@@ -200,21 +203,25 @@ def run_loop(
 
                 # Distributor
                 with agent_status("distributor"):
-                    d_out = distributor.run({
-                        "idea": idea_dict,
-                        "build_output": b_dict,
-                    })
+                    d_out = distributor.run(
+                        {
+                            "idea": idea_dict,
+                            "build_output": b_dict,
+                        }
+                    )
                 d_dict = d_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "distributor", d_dict)
                 _track_usage(conn, distributor, idea_dict["id"], settings)
 
                 # Consumer
                 with agent_status("consumer"):
-                    c_out = consumer.run({
-                        "idea": idea_dict,
-                        "build_output": b_dict,
-                        "dist_output": d_dict,
-                    })
+                    c_out = consumer.run(
+                        {
+                            "idea": idea_dict,
+                            "build_output": b_dict,
+                            "dist_output": d_dict,
+                        }
+                    )
                 c_dict = c_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "consumer", c_dict)
                 _track_usage(conn, consumer, idea_dict["id"], settings)
@@ -231,7 +238,8 @@ def run_loop(
                             "consumer_out": c_dict,
                         },
                         reflection_prompt_fn=lambda ctx, out: judge_reflection_prompt(
-                            idea=ctx["idea"], judge_output=out,
+                            idea=ctx["idea"],
+                            judge_output=out,
                         ),
                         max_rounds=settings.reflexion_max_rounds,
                     )
@@ -251,11 +259,13 @@ def run_loop(
                 # Claude Check (optional)
                 if claude_check_agent:
                     with agent_status("claude_check"):
-                        cc_out = claude_check_agent.run({
-                            "idea": idea_dict,
-                            "judge_output": j_dict,
-                            "builder_output": b_dict,
-                        })
+                        cc_out = claude_check_agent.run(
+                            {
+                                "idea": idea_dict,
+                                "judge_output": j_dict,
+                                "builder_output": b_dict,
+                            }
+                        )
                     cc_dict = cc_out.model_dump()
                     repo.save_agent_output(conn, idea_dict["id"], "claude_check", cc_dict)
                     _track_usage(conn, claude_check_agent, idea_dict["id"], settings)

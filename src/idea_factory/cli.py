@@ -64,12 +64,15 @@ DOMAIN_CHOICES = [
 def start(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
     claude_check: bool = typer.Option(
-        False, "--claude-check", "-cc",
+        False,
+        "--claude-check",
+        "-cc",
         help="Run Claude Check agent to assess one-shottability",
     ),
 ) -> None:
     """Start the interactive idea generation loop."""
     import os
+
     if verbose:
         os.environ["IDEA_FACTORY_VERBOSE"] = "1"
 
@@ -108,8 +111,12 @@ def start(
     console.print()
 
     run_loop(
-        region, domains, constraints, settings,
-        session_id=session_id, claude_check=claude_check,
+        region,
+        domains,
+        constraints,
+        settings,
+        session_id=session_id,
+        claude_check=claude_check,
     )
 
 
@@ -120,7 +127,9 @@ def livestream(
     ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
     claude_check: bool = typer.Option(
-        False, "--claude-check", "-cc",
+        False,
+        "--claude-check",
+        "-cc",
         help="Run Claude Check agent to assess one-shottability",
     ),
 ) -> None:
@@ -175,13 +184,11 @@ def web(
         from idea_factory.web import main as web_main
     except ImportError:
         console.print(
-            "[red]Web dependencies not installed.[/red]\n"
-            '[dim]Run: pip install -e ".[web]"[/dim]'
+            '[red]Web dependencies not installed.[/red]\n[dim]Run: pip install -e ".[web]"[/dim]'
         )
         raise typer.Exit(1)
     console.print(
-        f"[bold bright_cyan]Starting web dashboard at"
-        f" http://{host}:{port}[/bold bright_cyan]"
+        f"[bold bright_cyan]Starting web dashboard at http://{host}:{port}[/bold bright_cyan]"
     )
     web_main(host=host, port=port)
 
@@ -290,6 +297,7 @@ def replay(
 # Preferences subcommands
 # ---------------------------------------------------------------------------
 
+
 @prefs_app.command("show")
 def prefs_show() -> None:
     """Display current learned preference weights."""
@@ -325,8 +333,7 @@ def _prompt_provider_choice() -> str:
     console.print("[bold]Choose your LLM provider:[/bold]\n")
     for i, (_, name, desc) in enumerate(_PROVIDERS, 1):
         console.print(
-            f"  [bold bright_cyan]{i}.[/bold bright_cyan]"
-            f"  [bold]{name}[/bold]  [dim]{desc}[/dim]"
+            f"  [bold bright_cyan]{i}.[/bold bright_cyan]  [bold]{name}[/bold]  [dim]{desc}[/dim]"
         )
     console.print()
     choice = Prompt.ask("Select", choices=["1", "2"], default="1")
@@ -358,16 +365,10 @@ def _setup_provider(settings: Settings) -> None:
             console.print(
                 "[dim]Get your API key at: https://console.anthropic.com/settings/keys[/dim]"
             )
-            console.print(
-                "[dim]Or set it permanently: export ANTHROPIC_API_KEY=sk-ant-...[/dim]\n"
-            )
+            console.print("[dim]Or set it permanently: export ANTHROPIC_API_KEY=sk-ant-...[/dim]\n")
         else:
-            console.print(
-                "[dim]Get your API key at: https://platform.openai.com/api-keys[/dim]"
-            )
-            console.print(
-                "[dim]Or set it permanently: export OPENAI_API_KEY=sk-...[/dim]\n"
-            )
+            console.print("[dim]Get your API key at: https://platform.openai.com/api-keys[/dim]")
+            console.print("[dim]Or set it permanently: export OPENAI_API_KEY=sk-...[/dim]\n")
         api_key = Prompt.ask(f"Paste your {key_name}", password=True)
         if not api_key.strip():
             console.print("[bold red]API key is required. Exiting.[/bold red]")
@@ -409,6 +410,7 @@ def _get_constraints() -> str:
 def _get_settings_quiet():
     """Get settings without validation (for read-only commands)."""
     from idea_factory.config import Settings
+
     return Settings()
 
 

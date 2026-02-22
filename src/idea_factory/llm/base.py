@@ -65,13 +65,10 @@ class LLMProvider(ABC):
                     exc,
                 )
                 if attempt < max_retries:
-                    console.print(
-                        f"  [dim]Parse attempt {attempt + 1} failed, retrying...[/dim]"
-                    )
+                    console.print(f"  [dim]Parse attempt {attempt + 1} failed, retrying...[/dim]")
                     # Append correction hint to the user prompt
                     user_prompt = (
-                        user_prompt
-                        + f"\n\n[SYSTEM: Your previous response was not valid JSON "
+                        user_prompt + f"\n\n[SYSTEM: Your previous response was not valid JSON "
                         f"matching the schema. Error: {exc}. "
                         f"Please respond with ONLY valid JSON, no markdown.]"
                     )

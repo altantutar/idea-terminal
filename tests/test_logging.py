@@ -13,6 +13,7 @@ class TestSetupLogging:
     def setup_method(self):
         """Reset the module-level flag before each test."""
         import idea_factory.logging_cfg as mod
+
         mod._CONFIGURED = False
         # Remove existing handlers
         logger = logging.getLogger("idea_factory")
@@ -38,6 +39,7 @@ class TestSetupLogging:
         handler_count = len(logger.handlers)
         # Reset flag to test idempotency guard
         import idea_factory.logging_cfg as mod
+
         mod._CONFIGURED = True
         setup_logging(level="DEBUG")
         # Should not add more handlers

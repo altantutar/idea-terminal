@@ -10,6 +10,7 @@ from typing import Any
 # Ideas
 # ---------------------------------------------------------------------------
 
+
 def save_idea(conn: sqlite3.Connection, idea: dict) -> int:
     """Insert an idea row and return its id."""
     cur = conn.execute(
@@ -58,6 +59,7 @@ def get_idea(conn: sqlite3.Connection, idea_id: int) -> dict | None:
 # Agent outputs
 # ---------------------------------------------------------------------------
 
+
 def save_agent_output(conn: sqlite3.Connection, idea_id: int, agent_name: str, output: dict) -> int:
     cur = conn.execute(
         "INSERT INTO agent_outputs (idea_id, agent_name, output_json) VALUES (?, ?, ?)",
@@ -83,11 +85,17 @@ def get_agent_outputs(conn: sqlite3.Connection, idea_id: int) -> list[dict]:
 # Feedback
 # ---------------------------------------------------------------------------
 
+
 def save_feedback(conn: sqlite3.Connection, idea_id: int, feedback: dict) -> int:
     cur = conn.execute(
         "INSERT INTO feedback (idea_id, decision, rating, tags, note) VALUES (?, ?, ?, ?, ?)",
-        (idea_id, feedback["decision"], feedback["rating"],
-         json.dumps(feedback.get("tags", [])), feedback.get("note", "")),
+        (
+            idea_id,
+            feedback["decision"],
+            feedback["rating"],
+            json.dumps(feedback.get("tags", [])),
+            feedback.get("note", ""),
+        ),
     )
     conn.commit()
     return cur.lastrowid  # type: ignore[return-value]
@@ -96,6 +104,7 @@ def save_feedback(conn: sqlite3.Connection, idea_id: int, feedback: dict) -> int
 # ---------------------------------------------------------------------------
 # Preferences
 # ---------------------------------------------------------------------------
+
 
 def load_preferences(conn: sqlite3.Connection) -> dict[str, Any]:
     rows = conn.execute("SELECT key, value_json FROM preferences").fetchall()
@@ -122,6 +131,7 @@ def reset_preferences(conn: sqlite3.Connection) -> None:
 # Sessions
 # ---------------------------------------------------------------------------
 
+
 def save_session(
     conn: sqlite3.Connection,
     region: str,
@@ -139,9 +149,7 @@ def save_session(
 
 def get_latest_session(conn: sqlite3.Connection) -> dict | None:
     """Return the most recent session, or None."""
-    row = conn.execute(
-        "SELECT * FROM sessions ORDER BY id DESC LIMIT 1"
-    ).fetchone()
+    row = conn.execute("SELECT * FROM sessions ORDER BY id DESC LIMIT 1").fetchone()
     if not row:
         return None
     d = dict(row)
@@ -180,6 +188,7 @@ def get_recent_rejections(conn: sqlite3.Connection, session_id: int) -> list[str
 # Stats
 # ---------------------------------------------------------------------------
 
+
 def get_stats(conn: sqlite3.Connection) -> dict[str, Any]:
     total = conn.execute("SELECT COUNT(*) AS c FROM ideas").fetchone()["c"]
     by_status: dict[str, int] = {}
@@ -200,6 +209,7 @@ def get_stats(conn: sqlite3.Connection) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Token usage / cost tracking
 # ---------------------------------------------------------------------------
+
 
 def save_token_usage(
     conn: sqlite3.Connection,
@@ -260,6 +270,7 @@ def get_cost_summary(conn: sqlite3.Connection) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Scoreboard persistence
 # ---------------------------------------------------------------------------
+
 
 def save_scoreboard_entry(conn: sqlite3.Connection, entry: dict) -> None:
     """Upsert a scoreboard entry."""

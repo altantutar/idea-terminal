@@ -77,11 +77,20 @@ class TestIdeaCRUD:
         assert repo.get_idea(db_conn, 99999) is None
 
     def test_update_idea_status(self, db_conn):
-        idea_id = repo.save_idea(db_conn, {
-            "name": "X", "one_liner": "Y", "domain": "d",
-            "problem": "p", "solution": "s", "target_user": "u",
-            "monetization": "m", "region": "r", "tags": [],
-        })
+        idea_id = repo.save_idea(
+            db_conn,
+            {
+                "name": "X",
+                "one_liner": "Y",
+                "domain": "d",
+                "problem": "p",
+                "solution": "s",
+                "target_user": "u",
+                "monetization": "m",
+                "region": "r",
+                "tags": [],
+            },
+        )
         repo.update_idea_status(db_conn, idea_id, "winner", 8.5)
         fetched = repo.get_idea(db_conn, idea_id)
         assert fetched["status"] == "winner"
@@ -89,26 +98,53 @@ class TestIdeaCRUD:
 
     def test_list_ideas(self, db_conn):
         for name in ["A", "B", "C"]:
-            repo.save_idea(db_conn, {
-                "name": name, "one_liner": "Y", "domain": "d",
-                "problem": "p", "solution": "s", "target_user": "u",
-                "monetization": "m", "region": "r", "tags": [],
-            })
+            repo.save_idea(
+                db_conn,
+                {
+                    "name": name,
+                    "one_liner": "Y",
+                    "domain": "d",
+                    "problem": "p",
+                    "solution": "s",
+                    "target_user": "u",
+                    "monetization": "m",
+                    "region": "r",
+                    "tags": [],
+                },
+            )
         ideas = repo.list_ideas(db_conn)
         assert len(ideas) == 3
 
     def test_list_ideas_by_status(self, db_conn):
-        id1 = repo.save_idea(db_conn, {
-            "name": "A", "one_liner": "Y", "domain": "d",
-            "problem": "p", "solution": "s", "target_user": "u",
-            "monetization": "m", "region": "r", "tags": [],
-        })
+        id1 = repo.save_idea(
+            db_conn,
+            {
+                "name": "A",
+                "one_liner": "Y",
+                "domain": "d",
+                "problem": "p",
+                "solution": "s",
+                "target_user": "u",
+                "monetization": "m",
+                "region": "r",
+                "tags": [],
+            },
+        )
         repo.update_idea_status(db_conn, id1, "winner")
-        repo.save_idea(db_conn, {
-            "name": "B", "one_liner": "Y", "domain": "d",
-            "problem": "p", "solution": "s", "target_user": "u",
-            "monetization": "m", "region": "r", "tags": [],
-        })
+        repo.save_idea(
+            db_conn,
+            {
+                "name": "B",
+                "one_liner": "Y",
+                "domain": "d",
+                "problem": "p",
+                "solution": "s",
+                "target_user": "u",
+                "monetization": "m",
+                "region": "r",
+                "tags": [],
+            },
+        )
         winners = repo.list_ideas(db_conn, "winner")
         assert len(winners) == 1
         assert winners[0]["name"] == "A"
@@ -116,11 +152,20 @@ class TestIdeaCRUD:
 
 class TestAgentOutputs:
     def test_save_and_get(self, db_conn):
-        idea_id = repo.save_idea(db_conn, {
-            "name": "X", "one_liner": "Y", "domain": "d",
-            "problem": "p", "solution": "s", "target_user": "u",
-            "monetization": "m", "region": "r", "tags": [],
-        })
+        idea_id = repo.save_idea(
+            db_conn,
+            {
+                "name": "X",
+                "one_liner": "Y",
+                "domain": "d",
+                "problem": "p",
+                "solution": "s",
+                "target_user": "u",
+                "monetization": "m",
+                "region": "r",
+                "tags": [],
+            },
+        )
         repo.save_agent_output(db_conn, idea_id, "challenger", {"verdict": "SURVIVE"})
         repo.save_agent_output(db_conn, idea_id, "builder", {"buildable": True})
 
@@ -132,17 +177,30 @@ class TestAgentOutputs:
 
 class TestFeedback:
     def test_save_feedback(self, db_conn):
-        idea_id = repo.save_idea(db_conn, {
-            "name": "X", "one_liner": "Y", "domain": "d",
-            "problem": "p", "solution": "s", "target_user": "u",
-            "monetization": "m", "region": "r", "tags": [],
-        })
-        fb_id = repo.save_feedback(db_conn, idea_id, {
-            "decision": "love",
-            "rating": 9,
-            "tags": ["ai"],
-            "note": "Great!",
-        })
+        idea_id = repo.save_idea(
+            db_conn,
+            {
+                "name": "X",
+                "one_liner": "Y",
+                "domain": "d",
+                "problem": "p",
+                "solution": "s",
+                "target_user": "u",
+                "monetization": "m",
+                "region": "r",
+                "tags": [],
+            },
+        )
+        fb_id = repo.save_feedback(
+            db_conn,
+            idea_id,
+            {
+                "decision": "love",
+                "rating": 9,
+                "tags": ["ai"],
+                "note": "Great!",
+            },
+        )
         assert fb_id > 0
 
 
@@ -189,11 +247,20 @@ class TestSessions:
 
 class TestTokenUsage:
     def test_save_and_get_summary(self, db_conn):
-        idea_id = repo.save_idea(db_conn, {
-            "name": "X", "one_liner": "Y", "domain": "d",
-            "problem": "p", "solution": "s", "target_user": "u",
-            "monetization": "m", "region": "r", "tags": [],
-        })
+        idea_id = repo.save_idea(
+            db_conn,
+            {
+                "name": "X",
+                "one_liner": "Y",
+                "domain": "d",
+                "problem": "p",
+                "solution": "s",
+                "target_user": "u",
+                "monetization": "m",
+                "region": "r",
+                "tags": [],
+            },
+        )
         repo.save_token_usage(db_conn, idea_id, "creator", 100, 50, "anthropic", "claude-sonnet")
         repo.save_token_usage(db_conn, idea_id, "challenger", 200, 80, "anthropic", "claude-sonnet")
 
@@ -211,20 +278,26 @@ class TestTokenUsage:
 
 class TestScoreboard:
     def test_save_and_get(self, db_conn):
-        repo.save_scoreboard_entry(db_conn, {
-            "name": "Idea1",
-            "composite_score": 8.5,
-            "verdict": "WINNER",
-            "taste_decision": "love",
-            "taste_rating": 9,
-        })
-        repo.save_scoreboard_entry(db_conn, {
-            "name": "Idea2",
-            "composite_score": 6.0,
-            "verdict": "CONTENDER",
-            "taste_decision": "like",
-            "taste_rating": 7,
-        })
+        repo.save_scoreboard_entry(
+            db_conn,
+            {
+                "name": "Idea1",
+                "composite_score": 8.5,
+                "verdict": "WINNER",
+                "taste_decision": "love",
+                "taste_rating": 9,
+            },
+        )
+        repo.save_scoreboard_entry(
+            db_conn,
+            {
+                "name": "Idea2",
+                "composite_score": 6.0,
+                "verdict": "CONTENDER",
+                "taste_decision": "like",
+                "taste_rating": 7,
+            },
+        )
 
         board = repo.get_scoreboard(db_conn, limit=10)
         assert len(board) == 2
@@ -240,11 +313,20 @@ class TestScoreboard:
 class TestStats:
     def test_basic_stats(self, db_conn):
         for name, status in [("A", "winner"), ("B", "killed"), ("C", "killed")]:
-            idea_id = repo.save_idea(db_conn, {
-                "name": name, "one_liner": "Y", "domain": "d",
-                "problem": "p", "solution": "s", "target_user": "u",
-                "monetization": "m", "region": "r", "tags": [],
-            })
+            idea_id = repo.save_idea(
+                db_conn,
+                {
+                    "name": name,
+                    "one_liner": "Y",
+                    "domain": "d",
+                    "problem": "p",
+                    "solution": "s",
+                    "target_user": "u",
+                    "monetization": "m",
+                    "region": "r",
+                    "tags": [],
+                },
+            )
             score = 8.0 if status == "winner" else None
             repo.update_idea_status(db_conn, idea_id, status, score)
 

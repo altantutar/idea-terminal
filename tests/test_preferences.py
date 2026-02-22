@@ -83,9 +83,7 @@ class TestUpdatePreferences:
         prefs = PreferenceState()
         idea = {"domain": "saas", "tags": []}
         for _ in range(3):
-            prefs = update_preferences(
-                prefs, {"decision": "like", "rating": 7}, idea
-            )
+            prefs = update_preferences(prefs, {"decision": "like", "rating": 7}, idea)
         assert prefs.domain_weights["saas"] == 3.0
 
     def test_no_duplicate_hard_nos(self):

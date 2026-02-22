@@ -120,21 +120,21 @@ def run_livestream(
             trending_ctx = fetch_trending(cache_ttl=settings.trending_cache_ttl)
             trending_prefix = build_trending_prefix(trending_ctx)
             if trending_ctx.topics:
-                console.print(
-                    f"  [dim]{len(trending_ctx.topics)} trending signals loaded[/dim]\n"
-                )
+                console.print(f"  [dim]{len(trending_ctx.topics)} trending signals loaded[/dim]\n")
 
             # ----- CREATOR -----
             taste_prefix = build_taste_prefix(prefs)
             with agent_status("creator"):
-                creator_out = creator.run({
-                    "region": AUTO_REGION,
-                    "domains": AUTO_DOMAINS,
-                    "constraints": AUTO_CONSTRAINTS,
-                    "taste_prefix": taste_prefix,
-                    "recent_rejections": recent_rejections,
-                    "trending_prefix": trending_prefix,
-                })
+                creator_out = creator.run(
+                    {
+                        "region": AUTO_REGION,
+                        "domains": AUTO_DOMAINS,
+                        "constraints": AUTO_CONSTRAINTS,
+                        "taste_prefix": taste_prefix,
+                        "recent_rejections": recent_rejections,
+                        "trending_prefix": trending_prefix,
+                    }
+                )
             ideas = creator_out.ideas  # type: ignore[attr-defined]
             _track_usage(conn, creator, None, settings)
             console.print(f"  [bold green]{len(ideas)} ideas generated[/bold green]\n")
@@ -155,7 +155,8 @@ def run_livestream(
                         agent=challenger,
                         context={"idea": idea_dict},
                         reflection_prompt_fn=lambda ctx, out: challenger_reflection_prompt(
-                            idea=ctx["idea"], challenger_output=out,
+                            idea=ctx["idea"],
+                            challenger_output=out,
                         ),
                         max_rounds=settings.reflexion_max_rounds,
                     )
@@ -208,21 +209,25 @@ def run_livestream(
 
                 # Distributor
                 with agent_status("distributor"):
-                    d_out = distributor.run({
-                        "idea": idea_dict,
-                        "build_output": b_dict,
-                    })
+                    d_out = distributor.run(
+                        {
+                            "idea": idea_dict,
+                            "build_output": b_dict,
+                        }
+                    )
                 d_dict = d_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "distributor", d_dict)
                 _track_usage(conn, distributor, idea_dict["id"], settings)
 
                 # Consumer
                 with agent_status("consumer"):
-                    c_out = consumer.run({
-                        "idea": idea_dict,
-                        "build_output": b_dict,
-                        "dist_output": d_dict,
-                    })
+                    c_out = consumer.run(
+                        {
+                            "idea": idea_dict,
+                            "build_output": b_dict,
+                            "dist_output": d_dict,
+                        }
+                    )
                 c_dict = c_out.model_dump()
                 repo.save_agent_output(conn, idea_dict["id"], "consumer", c_dict)
                 _track_usage(conn, consumer, idea_dict["id"], settings)
@@ -239,7 +244,8 @@ def run_livestream(
                             "consumer_out": c_dict,
                         },
                         reflection_prompt_fn=lambda ctx, out: judge_reflection_prompt(
-                            idea=ctx["idea"], judge_output=out,
+                            idea=ctx["idea"],
+                            judge_output=out,
                         ),
                         max_rounds=settings.reflexion_max_rounds,
                     )
@@ -259,11 +265,13 @@ def run_livestream(
                 # Claude Check (optional)
                 if claude_check_agent:
                     with agent_status("claude_check"):
-                        cc_out = claude_check_agent.run({
-                            "idea": idea_dict,
-                            "judge_output": j_dict,
-                            "builder_output": b_dict,
-                        })
+                        cc_out = claude_check_agent.run(
+                            {
+                                "idea": idea_dict,
+                                "judge_output": j_dict,
+                                "builder_output": b_dict,
+                            }
+                        )
                     cc_dict = cc_out.model_dump()
                     repo.save_agent_output(conn, idea_dict["id"], "claude_check", cc_dict)
                     _track_usage(conn, claude_check_agent, idea_dict["id"], settings)
@@ -282,11 +290,13 @@ def run_livestream(
             if finalists:
                 for idea_dict, j_dict in finalists:
                     with agent_status("taste"):
-                        taste_out = taste.run({
-                            "idea": idea_dict,
-                            "judge_output": j_dict,
-                            "persona_description": persona_description,
-                        })
+                        taste_out = taste.run(
+                            {
+                                "idea": idea_dict,
+                                "judge_output": j_dict,
+                                "persona_description": persona_description,
+                            }
+                        )
                     fb_dict = taste_out.model_dump()
                     _track_usage(conn, taste, idea_dict["id"], settings)
                     repo.save_feedback(conn, idea_dict["id"], fb_dict)
@@ -313,9 +323,7 @@ def run_livestream(
                 display_scoreboard(scoreboard)
 
             # Pace before next loop
-            console.print(
-                f"  [dim]Next loop in {pace_between_loops}s... (Ctrl+C to stop)[/dim]\n"
-            )
+            console.print(f"  [dim]Next loop in {pace_between_loops}s... (Ctrl+C to stop)[/dim]\n")
             time.sleep(pace_between_loops)
 
     except GracefulExit:

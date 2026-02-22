@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 # Creator output
 # ---------------------------------------------------------------------------
 
+
 class IdeaSchema(BaseModel):
     """A single startup idea produced by the Creator agent."""
 
@@ -32,6 +33,7 @@ class CreatorOutput(BaseModel):
 # Challenger output
 # ---------------------------------------------------------------------------
 
+
 class ChallengerOutput(BaseModel):
     """Output from the Challenger agent — stress-tests the idea."""
 
@@ -45,6 +47,7 @@ class ChallengerOutput(BaseModel):
 # ---------------------------------------------------------------------------
 # Builder output
 # ---------------------------------------------------------------------------
+
 
 class MilestoneItem(BaseModel):
     week: str
@@ -70,6 +73,7 @@ class BuilderOutput(BaseModel):
 # Distributor output
 # ---------------------------------------------------------------------------
 
+
 class ChannelItem(BaseModel):
     channel: str
     tactic: str
@@ -90,6 +94,7 @@ class DistributorOutput(BaseModel):
 # Consumer output
 # ---------------------------------------------------------------------------
 
+
 class PersonaReaction(BaseModel):
     persona: str
     reaction: str
@@ -109,6 +114,7 @@ class ConsumerOutput(BaseModel):
 # ---------------------------------------------------------------------------
 # Judge output
 # ---------------------------------------------------------------------------
+
 
 class JudgeScores(BaseModel):
     novelty: int = Field(ge=1, le=10)
@@ -132,6 +138,7 @@ class JudgeOutput(BaseModel):
 # User feedback
 # ---------------------------------------------------------------------------
 
+
 class UserFeedback(BaseModel):
     """Structured feedback the user gives after reviewing an idea."""
 
@@ -154,19 +161,18 @@ class TasteFeedback(BaseModel):
 # Claude Check output
 # ---------------------------------------------------------------------------
 
+
 class ClaudeCheckOutput(BaseModel):
     """Output from the Claude Check agent — can Claude one-shot this?"""
 
     verdict: str = Field(description="one_shottable / needs_work / not_feasible")
     claude_product: str = Field(
-        description="Which Claude product could do it"
-        " (e.g. Claude Code, Claude Chat + Artifacts)"
+        description="Which Claude product could do it (e.g. Claude Code, Claude Chat + Artifacts)"
     )
     time_estimate: str = Field(description="e.g. ~2 hours, ~1 day, not applicable")
     what_it_builds: str = Field(description="What Claude could produce in one session")
     what_it_cant: str = Field(
-        description="What remains unsolved"
-        " (data moat, distribution, regulatory, infra)"
+        description="What remains unsolved (data moat, distribution, regulatory, infra)"
     )
     defensibility_note: str = Field(description="Implication for the startup's moat")
 
@@ -174,6 +180,7 @@ class ClaudeCheckOutput(BaseModel):
 # ---------------------------------------------------------------------------
 # Reflection output
 # ---------------------------------------------------------------------------
+
 
 class ReflectionOutput(BaseModel):
     """Critique of an agent's output from a reflection step."""

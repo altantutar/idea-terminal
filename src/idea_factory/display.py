@@ -46,6 +46,7 @@ def display_banner() -> None:
 # Provider detection display
 # ---------------------------------------------------------------------------
 
+
 def display_session_resume(session: dict) -> None:
     """Show a panel summarizing the previous session for resume prompt."""
     domains = session.get("domains", [])
@@ -88,6 +89,7 @@ def display_provider_detected(provider: str, model: str) -> None:
 # ---------------------------------------------------------------------------
 # Domain picker
 # ---------------------------------------------------------------------------
+
 
 def display_domain_picker() -> None:
     """Render the domain list as a two-column numbered grid."""
@@ -150,8 +152,7 @@ def _score_bar(value: int, max_val: int = 10, width: int = 10) -> str:
     else:
         color = "red"
     bar = (
-        f"[{color}]{_SCORE_BLOCK * filled}[/{color}]"
-        f"[dim]{_SCORE_EMPTY * (max_val - filled)}[/dim]"
+        f"[{color}]{_SCORE_BLOCK * filled}[/{color}][dim]{_SCORE_EMPTY * (max_val - filled)}[/dim]"
     )
     return f"{bar} [bold]{value}[/bold]/{max_val}"
 
@@ -229,7 +230,9 @@ def display_idea_card(idea: dict, judge_output: dict | None = None) -> None:
     if judge_output:
         verdict = judge_output.get("verdict", "PASS")
         border = {
-            "WINNER": "green", "CONTENDER": "yellow", "PASS": "red",
+            "WINNER": "green",
+            "CONTENDER": "yellow",
+            "PASS": "red",
         }.get(verdict, "bright_blue")
     else:
         border = "bright_blue"
@@ -277,6 +280,7 @@ def agent_status(agent_name: str):
 # Challenger results
 # ---------------------------------------------------------------------------
 
+
 def display_challenger_result(name: str, survived: bool, one_liner: str = "") -> None:
     liner = f"\n                {one_liner}" if one_liner else ""
     if survived:
@@ -288,6 +292,7 @@ def display_challenger_result(name: str, survived: bool, one_liner: str = "") ->
 # ---------------------------------------------------------------------------
 # Loop summary
 # ---------------------------------------------------------------------------
+
 
 def display_loop_summary(
     loop_num: int,
@@ -317,12 +322,13 @@ def display_loop_summary(
 # Stats
 # ---------------------------------------------------------------------------
 
+
 def display_stats(stats: dict[str, Any]) -> None:
     table = Table(box=box.SIMPLE_HEAVY, expand=False, padding=(0, 2))
     table.add_column("Metric", style="bold")
     table.add_column("Value", justify="right")
 
-    total = stats.get('total_ideas', 0)
+    total = stats.get("total_ideas", 0)
     table.add_row(
         "Total ideas",
         f"[bold bright_white]{total}[/bold bright_white]",
@@ -330,8 +336,10 @@ def display_stats(stats: dict[str, Any]) -> None:
 
     for status, count in stats.get("by_status", {}).items():
         color = {
-            "winner": "green", "contender": "yellow",
-            "pass": "red", "killed": "red",
+            "winner": "green",
+            "contender": "yellow",
+            "pass": "red",
+            "killed": "red",
         }.get(status, "white")
         table.add_row(f"  {status}", f"[{color}]{count}[/{color}]")
 
@@ -390,6 +398,7 @@ def display_ideas_table(ideas: list[dict]) -> None:
 # Full idea detail — formatted agent outputs
 # ---------------------------------------------------------------------------
 
+
 def _format_agent_output(agent_name: str, output: dict) -> Panel:
     """Format a single agent's output as a readable panel."""
     lines: list[str] = []
@@ -413,9 +422,7 @@ def _format_agent_output(agent_name: str, output: dict) -> Panel:
 
     elif agent_name == "builder":
         buildable = output.get("buildable", False)
-        build_badge = (
-            "[green]Yes[/green]" if buildable else "[red]No[/red]"
-        )
+        build_badge = "[green]Yes[/green]" if buildable else "[red]No[/red]"
         lines.append(f"[bold]Buildable:[/bold] {build_badge}")
         if output.get("mvp_scope"):
             lines.append(f"[bold]MVP scope:[/bold] {output['mvp_scope']}")
@@ -469,13 +476,8 @@ def _format_agent_output(agent_name: str, output: dict) -> Panel:
                 lines.append("")
         excitement = output.get("overall_excitement", "?")
         wtp = output.get("willingness_to_pay", "?")
-        exc_display = (
-            _score_bar(excitement) if isinstance(excitement, int)
-            else excitement
-        )
-        wtp_display = (
-            _score_bar(wtp) if isinstance(wtp, int) else wtp
-        )
+        exc_display = _score_bar(excitement) if isinstance(excitement, int) else excitement
+        wtp_display = _score_bar(wtp) if isinstance(wtp, int) else wtp
         lines.append(f"[bold]Excitement:[/bold] {exc_display}")
         lines.append(f"[bold]WTP:[/bold]        {wtp_display}")
         if output.get("key_objection"):
@@ -517,11 +519,8 @@ def _format_agent_output(agent_name: str, output: dict) -> Panel:
         if output.get("what_it_cant"):
             lines.append(f"[bold]What it can't:[/bold] {output['what_it_cant']}")
         if output.get("defensibility_note"):
-            defense = output['defensibility_note']
-            lines.append(
-                f"\n[bold]Defensibility:[/bold]"
-                f" [italic]{defense}[/italic]"
-            )
+            defense = output["defensibility_note"]
+            lines.append(f"\n[bold]Defensibility:[/bold] [italic]{defense}[/italic]")
 
     else:
         # Fallback: pretty-print JSON
@@ -575,6 +574,7 @@ def display_idea_detail(idea: dict, agent_outputs: list[dict]) -> None:
 # ---------------------------------------------------------------------------
 # Preferences display
 # ---------------------------------------------------------------------------
+
 
 def display_preferences(prefs: Any) -> None:
     """Show current preference weights."""
@@ -711,8 +711,7 @@ def display_livestream_banner(persona_label: str) -> None:
     """Show the branded livestream banner with persona info."""
     console.print(
         Panel(
-            LIVESTREAM_LOGO
-            + f"\n  [dim]Persona:[/dim]"
+            LIVESTREAM_LOGO + f"\n  [dim]Persona:[/dim]"
             f" [bold magenta]{persona_label}[/bold magenta]",
             subtitle="[dim]autonomous agent mode[/dim]",
             border_style="red",
@@ -732,9 +731,7 @@ def display_persona_picker() -> None:
 
     # Famous personas
     for i, name in enumerate(FAMOUS_NAMES, 1):
-        table.add_row(
-            f"[bold bright_cyan]{i:>2}.[/bold bright_cyan]  [bold]{name.title()}[/bold]"
-        )
+        table.add_row(f"[bold bright_cyan]{i:>2}.[/bold bright_cyan]  [bold]{name.title()}[/bold]")
 
     # Separator
     table.add_row("[dim]--- Archetypes ---[/dim]")
@@ -742,9 +739,7 @@ def display_persona_picker() -> None:
     # Archetype personas
     offset = len(FAMOUS_NAMES)
     for i, name in enumerate(TYPE_NAMES, offset + 1):
-        table.add_row(
-            f"[bold bright_cyan]{i:>2}.[/bold bright_cyan]  [bold]{name.title()}[/bold]"
-        )
+        table.add_row(f"[bold bright_cyan]{i:>2}.[/bold bright_cyan]  [bold]{name.title()}[/bold]")
 
     table.add_row("")
     table.add_row("[dim]Or type: a name, @handle, or custom description[/dim]")
@@ -760,9 +755,7 @@ def display_persona_picker() -> None:
     )
 
 
-def display_taste_feedback(
-    idea: dict, feedback: dict, persona_label: str
-) -> None:
+def display_taste_feedback(idea: dict, feedback: dict, persona_label: str) -> None:
     """Show the Taste Agent's reaction in a magenta panel."""
     decision = feedback.get("decision", "?")
     rating = feedback.get("rating", 0)

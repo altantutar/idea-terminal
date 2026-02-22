@@ -25,9 +25,8 @@ def creator_prompt(
     )
     rejection_block = ""
     if recent_rejections:
-        rejection_block = (
-            "\n\nAvoid ideas similar to these recently rejected ones:\n"
-            + "\n".join(f"- {r}" for r in recent_rejections[-10:])
+        rejection_block = "\n\nAvoid ideas similar to these recently rejected ones:\n" + "\n".join(
+            f"- {r}" for r in recent_rejections[-10:]
         )
     trending_block = ""
     if trending_prefix:
@@ -182,16 +181,19 @@ def judge_prompt(
 # Claude Check prompt
 # ---------------------------------------------------------------------------
 
-def claude_check_prompt(
-    idea: dict, judge_output: dict, builder_output: dict
-) -> tuple[str, str]:
+
+def claude_check_prompt(idea: dict, judge_output: dict, builder_output: dict) -> tuple[str, str]:
     """Return (system, user) prompts for the Claude Check agent."""
     scores = judge_output.get("scores", {})
     tech_stack = builder_output.get("tech_stack", [])
-    stack_str = ", ".join(
-        f"{s.get('layer', '')}: {s.get('choice', '')}" if isinstance(s, dict) else str(s)
-        for s in tech_stack
-    ) if tech_stack else "N/A"
+    stack_str = (
+        ", ".join(
+            f"{s.get('layer', '')}: {s.get('choice', '')}" if isinstance(s, dict) else str(s)
+            for s in tech_stack
+        )
+        if tech_stack
+        else "N/A"
+    )
 
     system = (
         f"{SYSTEM_PREFIX}\n\n"
@@ -248,9 +250,8 @@ def claude_check_prompt(
 # Reflection prompts
 # ---------------------------------------------------------------------------
 
-def challenger_reflection_prompt(
-    idea: dict, challenger_output: dict
-) -> tuple[str, str]:
+
+def challenger_reflection_prompt(idea: dict, challenger_output: dict) -> tuple[str, str]:
     """Return (system, user) prompts to critique a Challenger output."""
     system = (
         f"{SYSTEM_PREFIX}\n\n"
