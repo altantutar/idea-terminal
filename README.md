@@ -4,6 +4,7 @@ Terminal-native startup idea generator with a multi-agent evaluation pipeline. E
 
 ## Features
 
+- **Web Dashboard** — Browser-based UI with real-time SSE streaming, no terminal required
 - **6-Agent Pipeline** — Creator, Challenger, Builder, Distributor, Consumer, Judge
 - **Claude Check Agent** — Optional `--claude-check` flag assesses whether Claude can one-shot the idea, serving as a defensibility filter
 - **Reflexion** — Self-critique loops on Challenger and Judge outputs for higher quality evaluations
@@ -37,6 +38,25 @@ export OPENAI_API_KEY=sk-...
 ```
 
 ## Usage
+
+### Web Dashboard
+
+```bash
+# Install with web dependencies
+pip install -e ".[web]"
+
+# Launch the dashboard
+idea-factory web
+```
+
+Opens at [http://127.0.0.1:8000](http://127.0.0.1:8000). Browse ideas, inspect agent outputs, run the generation loop with real-time progress, and submit feedback — all from the browser.
+
+```bash
+# Custom host and port
+idea-factory web --host 0.0.0.0 --port 3000
+```
+
+On first run, the web UI will ask you to select a provider (Anthropic or OpenAI) and enter your API key. The key is remembered for the session.
 
 ### Interactive Mode
 
@@ -141,6 +161,13 @@ src/idea_factory/
 │   ├── base.py           # LLMProvider base
 │   ├── factory.py        # Provider factory
 │   └── openai.py         # OpenAI provider
+├── web/
+│   ├── api/              # REST API (ideas, stats, runs, feedback, provider)
+│   ├── templates/        # Jinja2 templates (dashboard, detail, run, costs)
+│   ├── static/           # CSS and JS
+│   ├── app.py            # FastAPI app factory
+│   ├── runner.py         # Web-adapted loop with SSE events
+│   └── sse.py            # Server-Sent Events endpoint
 ├── cli.py                # Typer CLI commands
 ├── config.py             # Settings
 ├── display.py            # Rich terminal rendering
