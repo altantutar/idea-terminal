@@ -43,6 +43,140 @@ DOMAIN_CHOICES = [
 ]
 
 
+DOMAIN_NICHES: dict[str, list[str]] = {
+    "Software engineering": [
+        "Developer tooling & DX",
+        "CI/CD and deployment",
+        "Code review & quality",
+        "API management",
+        "Legacy modernization",
+    ],
+    "Back-office automation": [
+        "Invoice processing",
+        "Procurement workflows",
+        "HR onboarding",
+        "Compliance reporting",
+        "Expense management",
+    ],
+    "Marketing and copywriting": [
+        "SEO content pipelines",
+        "Ad creative testing",
+        "Brand voice consistency",
+        "Influencer campaign ops",
+        "Personalization engines",
+    ],
+    "Sales and CRM": [
+        "Pipeline forecasting",
+        "Lead enrichment",
+        "Sales coaching",
+        "Contract lifecycle",
+        "Revenue operations",
+    ],
+    "Finance and accounting": [
+        "Cash flow forecasting",
+        "Tax automation",
+        "Audit trail management",
+        "Treasury operations",
+        "Financial close automation",
+    ],
+    "Data analysis and BI": [
+        "Self-serve analytics",
+        "Data quality monitoring",
+        "Metric layer management",
+        "Anomaly detection",
+        "Data catalog & lineage",
+    ],
+    "Academic research": [
+        "Literature review automation",
+        "Grant writing assistance",
+        "Reproducibility tooling",
+        "Lab data management",
+        "Peer review workflows",
+    ],
+    "Cybersecurity": [
+        "Threat intelligence",
+        "Security posture management",
+        "Incident response automation",
+        "Supply chain security",
+        "Identity & access governance",
+    ],
+    "Customer service": [
+        "Ticket routing & triage",
+        "Knowledge base curation",
+        "Agent quality assurance",
+        "Proactive outreach",
+        "Voice-of-customer analytics",
+    ],
+    "Gaming and interactive media": [
+        "Procedural content generation",
+        "Player behavior analytics",
+        "In-game economy balancing",
+        "Community moderation",
+        "Accessibility tooling",
+    ],
+    "Document and presentation creation": [
+        "Template intelligence",
+        "Version control for docs",
+        "Regulatory document assembly",
+        "Visual design automation",
+        "Translation & localization",
+    ],
+    "Education and tutoring": [
+        "Adaptive learning paths",
+        "Assessment generation",
+        "Student engagement analytics",
+        "Credential verification",
+        "Cohort-based learning ops",
+    ],
+    "E-commerce operations": [
+        "Inventory forecasting",
+        "Dynamic pricing",
+        "Returns & refund automation",
+        "Product catalog enrichment",
+        "Marketplace multi-channel sync",
+    ],
+    "Medicine and healthcare": [
+        "Clinical trials management",
+        "Remote patient monitoring",
+        "Medical billing automation",
+        "Clinical decision support",
+        "Provider credentialing",
+    ],
+    "Legal": [
+        "Contract analysis",
+        "E-discovery automation",
+        "Regulatory change tracking",
+        "IP portfolio management",
+        "Legal billing & matter mgmt",
+    ],
+    "Travel and logistics": [
+        "Route optimization",
+        "Freight matching",
+        "Customs & compliance",
+        "Last-mile delivery",
+        "Travel expense reconciliation",
+    ],
+}
+
+
+def build_domain_niches_hint(domains: list[str]) -> str:
+    """Build a hint string with sub-niches for selected domains."""
+    lines: list[str] = []
+    for domain in domains:
+        niches = DOMAIN_NICHES.get(domain, [])
+        if niches:
+            lines.append(f"  {domain}: {', '.join(niches)}")
+    if not lines:
+        return ""
+    hint = "== DOMAIN SUB-NICHES (explore these specific verticals) ==\n" + "\n".join(lines)
+    if len(domains) > 1:
+        hint += (
+            "\n\nConsider ideas at the INTERSECTION of these domains — "
+            "cross-domain ideas are often the most novel."
+        )
+    return hint
+
+
 def _env_int(key: str, default: int) -> int:
     """Read an env var as int, falling back to *default*."""
     raw = os.getenv(key)

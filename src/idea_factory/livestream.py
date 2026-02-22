@@ -15,7 +15,7 @@ from idea_factory.agents.creator import CreatorAgent
 from idea_factory.agents.distributor import DistributorAgent
 from idea_factory.agents.judge import JudgeAgent
 from idea_factory.agents.taste import TasteAgent
-from idea_factory.config import Settings
+from idea_factory.config import Settings, build_domain_niches_hint
 from idea_factory.db import repository as repo
 from idea_factory.db.connection import get_db
 from idea_factory.display import (
@@ -29,13 +29,18 @@ from idea_factory.display import (
     display_taste_feedback,
 )
 from idea_factory.llm.factory import get_provider
+from idea_factory.models import ConceptFingerprint
 from idea_factory.preferences import (
     build_taste_prefix,
     load_preferences,
     save_preferences,
     update_preferences,
 )
-from idea_factory.prompts import challenger_reflection_prompt, judge_reflection_prompt
+from idea_factory.prompts import (
+    challenger_reflection_prompt,
+    concept_fingerprint_prompt,
+    judge_reflection_prompt,
+)
 from idea_factory.reflexion import run_with_reflexion
 from idea_factory.trending import build_trending_prefix, fetch_trending
 
@@ -65,6 +70,15 @@ def _track_usage(conn, agent, idea_id, settings):
             provider=settings.llm_provider,
             model=settings.model,
         )
+
+
+def _generate_concept_fingerprint(provider, idea_dict: dict) -> ConceptFingerprint | None:
+    """Generate a concept fingerprint for an idea. Returns None on failure (non-critical)."""
+    try:
+        sys_p, usr_p = concept_fingerprint_prompt(idea_dict)
+        return provider.generate(sys_p, usr_p, ConceptFingerprint)
+    except Exception:
+        return None
 
 
 class GracefulExit(Exception):
@@ -101,10 +115,17 @@ def run_livestream(
 
     # State
     prefs = load_preferences(conn)
-    recent_rejections: list[str] = []
+    recent_rejections: list[dict] = []
     loop_num = 0
     # Load persisted scoreboard, fall back to empty
     scoreboard: list[dict] = repo.get_scoreboard(conn, limit=10)
+
+    # Load cross-session rejected concepts
+    cross_session_concepts = repo.get_rejected_concepts(conn, limit=30)
+    for c in cross_session_concepts:
+        recent_rejections.append(
+            {"name": c["name"], "concept_summary": c.get("concept_summary", "")}
+        )
 
     # Graceful exit
     prev_handler = signal.getsignal(signal.SIGINT)
@@ -124,6 +145,7 @@ def run_livestream(
 
             # ----- CREATOR -----
             taste_prefix = build_taste_prefix(prefs)
+            domain_niches_hint = build_domain_niches_hint(AUTO_DOMAINS)
             with agent_status("creator"):
                 creator_out = creator.run(
                     {
@@ -133,6 +155,7 @@ def run_livestream(
                         "taste_prefix": taste_prefix,
                         "recent_rejections": recent_rejections,
                         "trending_prefix": trending_prefix,
+                        "domain_niches_hint": domain_niches_hint,
                     }
                 )
             ideas = creator_out.ideas  # type: ignore[attr-defined]
@@ -169,7 +192,20 @@ def run_livestream(
                     display_challenger_result(idea_dict["name"], survived=True)
                 else:
                     repo.update_idea_status(conn, idea_dict["id"], "killed")
-                    recent_rejections.append(idea_dict["name"])
+                    # Generate concept fingerprint for rejection memory
+                    fp = _generate_concept_fingerprint(provider, idea_dict)
+                    concept_summary = fp.concept_summary if fp else ""
+                    if fp:
+                        repo.save_concept(
+                            conn,
+                            idea_dict["id"],
+                            fp.concept_summary,
+                            fp.problem_domain,
+                            rejection_source="challenger_kill",
+                        )
+                    recent_rejections.append(
+                        {"name": idea_dict["name"], "concept_summary": concept_summary}
+                    )
                     display_challenger_result(idea_dict["name"], survived=False)
 
             if not survivors:
@@ -188,6 +224,8 @@ def run_livestream(
             )
 
             # ----- FULL PIPELINE for each survivor -----
+            # Fetch historical concepts for Judge novelty comparison
+            historical_concepts = repo.get_rejected_concepts(conn, limit=15)
             finalists: list[tuple[dict, dict]] = []
             for idea_dict, ch_dict in top_survivors:
                 console.rule(
@@ -242,6 +280,7 @@ def run_livestream(
                             "builder_out": b_dict,
                             "dist_out": d_dict,
                             "consumer_out": c_dict,
+                            "historical_concepts": historical_concepts,
                         },
                         reflection_prompt_fn=lambda ctx, out: judge_reflection_prompt(
                             idea=ctx["idea"],
@@ -304,6 +343,21 @@ def run_livestream(
                     # Update preferences from AI feedback
                     prefs = update_preferences(prefs, fb_dict, idea_dict, j_dict)
                     save_preferences(conn, prefs)
+
+                    # Store concept fingerprint for hate/meh feedback
+                    if fb_dict.get("decision") in ("hate", "meh"):
+                        fp = _generate_concept_fingerprint(provider, idea_dict)
+                        if fp:
+                            repo.save_concept(
+                                conn,
+                                idea_dict["id"],
+                                fp.concept_summary,
+                                fp.problem_domain,
+                                rejection_source=f"taste_{fb_dict['decision']}",
+                            )
+                            recent_rejections.append(
+                                {"name": idea_dict["name"], "concept_summary": fp.concept_summary}
+                            )
 
                     display_taste_feedback(idea_dict, fb_dict, persona_label)
 

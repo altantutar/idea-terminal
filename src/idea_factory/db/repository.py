@@ -15,13 +15,18 @@ def save_idea(conn: sqlite3.Connection, idea: dict) -> int:
     """Insert an idea row and return its id."""
     cur = conn.execute(
         """INSERT INTO ideas (name, one_liner, domain, problem, solution,
-                              target_user, monetization, region, tags, inspired_by)
+                              target_user, monetization, region, tags, inspired_by,
+                              why_now, moat, unfair_insight)
            VALUES (:name, :one_liner, :domain, :problem, :solution,
-                   :target_user, :monetization, :region, :tags, :inspired_by)""",
+                   :target_user, :monetization, :region, :tags, :inspired_by,
+                   :why_now, :moat, :unfair_insight)""",
         {
             **idea,
             "tags": json.dumps(idea.get("tags", [])),
             "inspired_by": json.dumps(idea.get("inspired_by", [])),
+            "why_now": idea.get("why_now", ""),
+            "moat": idea.get("moat", ""),
+            "unfair_insight": idea.get("unfair_insight", ""),
         },
     )
     conn.commit()
@@ -176,16 +181,53 @@ def update_session_progress(
     conn.commit()
 
 
-def get_recent_rejections(conn: sqlite3.Connection, session_id: int) -> list[str]:
-    """Return names of killed ideas created after the session started."""
+def get_recent_rejections(conn: sqlite3.Connection, session_id: int) -> list[dict]:
+    """Return names + concept summaries of killed ideas created after the session started."""
     rows = conn.execute(
-        """SELECT i.name FROM ideas i
+        """SELECT i.name, ic.concept_summary
+           FROM ideas i
            JOIN sessions s ON s.id = ?
+           LEFT JOIN idea_concepts ic ON ic.idea_id = i.id
            WHERE i.status = 'killed' AND i.created_at >= s.created_at
            ORDER BY i.id DESC""",
         (session_id,),
     ).fetchall()
-    return [r["name"] for r in rows]
+    return [{"name": r["name"], "concept_summary": r["concept_summary"] or ""} for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# Idea concepts (rejection memory)
+# ---------------------------------------------------------------------------
+
+
+def save_concept(
+    conn: sqlite3.Connection,
+    idea_id: int,
+    concept_summary: str,
+    problem_domain: str = "",
+    rejection_source: str = "",
+) -> int:
+    """Insert a concept fingerprint for an idea and return its id."""
+    cur = conn.execute(
+        """INSERT INTO idea_concepts (idea_id, concept_summary, problem_domain, rejection_source)
+           VALUES (?, ?, ?, ?)""",
+        (idea_id, concept_summary, problem_domain, rejection_source),
+    )
+    conn.commit()
+    return cur.lastrowid  # type: ignore[return-value]
+
+
+def get_rejected_concepts(conn: sqlite3.Connection, limit: int = 30) -> list[dict]:
+    """Return concept summaries from ALL sessions (cross-session memory)."""
+    rows = conn.execute(
+        """SELECT i.name, ic.concept_summary, ic.problem_domain, ic.rejection_source
+           FROM idea_concepts ic
+           JOIN ideas i ON i.id = ic.idea_id
+           ORDER BY ic.id DESC
+           LIMIT ?""",
+        (limit,),
+    ).fetchall()
+    return [dict(r) for r in rows]
 
 
 # ---------------------------------------------------------------------------

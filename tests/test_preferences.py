@@ -55,7 +55,10 @@ class TestUpdatePreferences:
         idea = {"name": "BadIdea", "domain": "d", "tags": []}
         feedback = {"decision": "hate", "rating": 1}
         prefs = update_preferences(prefs, feedback, idea)
-        assert "BadIdea" in prefs.hard_nos
+        assert any(
+            (item["name"] if isinstance(item, dict) else item) == "BadIdea"
+            for item in prefs.hard_nos
+        )
 
     def test_like_reduces_reject_tags(self):
         prefs = PreferenceState(reject_tag_weights={"blockchain": 3.0})
@@ -92,7 +95,10 @@ class TestUpdatePreferences:
         fb = {"decision": "hate", "rating": 1}
         prefs = update_preferences(prefs, fb, idea)
         prefs = update_preferences(prefs, fb, idea)
-        assert prefs.hard_nos.count("X") == 1
+        names = [
+            (item["name"] if isinstance(item, dict) else item) for item in prefs.hard_nos
+        ]
+        assert names.count("X") == 1
 
 
 class TestBuildTastePrefix:

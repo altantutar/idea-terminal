@@ -37,12 +37,24 @@ class IdeaSchema(BaseModel):
     inspired_by: list[InspirationSourceSchema] = Field(
         default_factory=list, description="Sources that inspired this idea"
     )
+    why_now: str = Field(default="", description="What recent change makes this viable now")
+    moat: str = Field(default="", description="Defensibility beyond first-mover advantage")
+    unfair_insight: str = Field(
+        default="", description="A non-obvious observation most people get wrong"
+    )
 
 
 class CreatorOutput(BaseModel):
     """Batch output from the Creator agent."""
 
     ideas: list[IdeaSchema]
+
+
+class ConceptFingerprint(BaseModel):
+    """Lightweight concept summary used for rejection memory."""
+
+    concept_summary: str = Field(description="1-2 sentence summary of the core concept")
+    problem_domain: str = Field(default="", description="Problem domain category")
 
 
 # ---------------------------------------------------------------------------

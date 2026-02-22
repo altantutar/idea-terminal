@@ -81,11 +81,22 @@ def update_preferences(
         if archetype:
             prefs.archetype_weights[archetype] = prefs.archetype_weights.get(archetype, 0.0) + mult
 
-    # Hard no on hate
+    # Hard no on hate — store as dict with concept context when available
     if decision == "hate":
         name = idea.get("name", "")
-        if name and name not in prefs.hard_nos:
-            prefs.hard_nos.append(name)
+        if name:
+            # Check if already in hard_nos (handle both str and dict entries)
+            existing_names = {
+                (item["name"] if isinstance(item, dict) else item) for item in prefs.hard_nos
+            }
+            if name not in existing_names:
+                prefs.hard_nos.append(
+                    {
+                        "name": name,
+                        "problem": idea.get("problem", ""),
+                        "solution": idea.get("solution", ""),
+                    }
+                )
 
     return prefs
 
@@ -125,6 +136,18 @@ def build_taste_prefix(prefs: PreferenceState) -> str:
     )
     if liked_arch:
         lines.append("Preferred idea archetypes: " + ", ".join(a for a, _ in liked_arch[:5]))
+
+    # Hard nos with concept context
+    if prefs.hard_nos:
+        hard_no_parts: list[str] = []
+        for item in prefs.hard_nos[:10]:
+            if isinstance(item, dict):
+                name = item.get("name", "?")
+                problem = item.get("problem", "")
+                hard_no_parts.append(f"{name} ({problem})" if problem else name)
+            else:
+                hard_no_parts.append(str(item))
+        lines.append("Hard nos (never revisit these concepts): " + "; ".join(hard_no_parts))
 
     if not lines:
         return ""

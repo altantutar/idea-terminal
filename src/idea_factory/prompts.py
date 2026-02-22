@@ -14,23 +14,68 @@ def creator_prompt(
     domains: list[str],
     constraints: str,
     taste_prefix: str,
-    recent_rejections: list[str] | None = None,
+    recent_rejections: list[dict] | list[str] | None = None,
     trending_prefix: str = "",
+    domain_niches_hint: str = "",
 ) -> tuple[str, str]:
     """Return (system_prompt, user_prompt) for the Creator agent."""
     system = (
         f"{SYSTEM_PREFIX}\n\n"
-        "Your role: CREATOR. You generate novel, opinionated startup ideas. "
-        "Each idea should be specific, not generic. Think contrarian."
+        "Your role: CREATOR. You generate novel, opinionated startup ideas.\n\n"
+        "== INNOVATION FRAMEWORKS (use at least one per idea) ==\n"
+        "- Jobs-to-be-Done: What job is the user hiring this product for? "
+        "Be specific about the context, motivation, and desired outcome.\n"
+        "- Blue Ocean: Find uncontested market space. What axes of value can "
+        "you create that incumbents ignore?\n"
+        "- 10x Wedge: Start with a narrow use case you can be 10x better at, "
+        "then expand. Name the specific wedge.\n"
+        "- Regulatory Arbitrage: What legal/regulatory shift just happened or "
+        "is about to happen that unlocks a new market?\n"
+        "- Pickaxe Play: Instead of competing in a gold rush, sell the tools. "
+        "Who are the gold rushers and what do they desperately need?\n\n"
+        "== ANTI-PATTERNS (never generate these) ==\n"
+        "- Thin API wrappers around an LLM with no proprietary data or workflow\n"
+        "- Generic 'AI chatbot for X' without a specific wedge or insight\n"
+        "- Another 'Uber for Y' or 'Airbnb for Z' without a structural reason it works\n"
+        "- Dashboard-only plays with no workflow integration or data moat\n"
+        "- Ideas where the entire value prop is 'it uses AI' with no deeper insight\n\n"
+        "== QUALITY CRITERIA ==\n"
+        "Every idea MUST have:\n"
+        "1. A non-obvious insight — something most people in the space get wrong\n"
+        "2. A specific persona — not 'businesses' but 'mid-market e-commerce ops managers'\n"
+        "3. A why-now — what changed recently (tech, regulation, behavior) that makes this viable\n"
+        "4. A defensible moat — beyond 'first mover', how do you compound advantage?\n\n"
+        "== CONTRAST: GENERIC vs. NOVEL ==\n"
+        "BAD (generic): 'AI-powered recruiting platform that matches candidates to jobs'\n"
+        "GOOD (novel): 'Reverse-auction hiring for senior devs — candidates set their price "
+        "and terms, companies bid. Moat: proprietary salary benchmark data from 50k+ "
+        "completed auctions. Why now: remote work made geography irrelevant for senior talent.'\n\n"
+        "BAD (generic): 'AI tool to help small businesses with accounting'\n"
+        "GOOD (novel): 'Autopilot CFO for Shopify sellers — auto-categorizes every transaction, "
+        "predicts cash crunches 6 weeks out, and pre-negotiates credit lines. "
+        "Wedge: Shopify plugin with real-time transaction stream. Moat: financial model "
+        "trained on 100k+ merchant cash flow patterns.'"
     )
     rejection_block = ""
     if recent_rejections:
-        rejection_block = "\n\nAvoid ideas similar to these recently rejected ones:\n" + "\n".join(
-            f"- {r}" for r in recent_rejections[-10:]
+        items: list[str] = []
+        for r in recent_rejections[-20:]:
+            if isinstance(r, dict):
+                name = r.get("name", "?")
+                summary = r.get("concept_summary", "")
+                items.append(f"- {name}: {summary}" if summary else f"- {name}")
+            else:
+                items.append(f"- {r}")
+        rejection_block = (
+            "\n\n== REJECTED CONCEPTS (do NOT regenerate these or similar) ==\n"
+            + "\n".join(items)
         )
     trending_block = ""
     if trending_prefix:
         trending_block = f"\n\n{trending_prefix}"
+    niches_block = ""
+    if domain_niches_hint:
+        niches_block = f"\n\n{domain_niches_hint}"
     user = (
         f"Generate exactly 5 startup ideas.\n\n"
         f"Region/market: {region}\n"
@@ -38,12 +83,38 @@ def creator_prompt(
         f"Constraints: {constraints or 'None'}\n"
         f"{taste_prefix}"
         f"{rejection_block}"
-        f"{trending_block}\n\n"
+        f"{trending_block}"
+        f"{niches_block}\n\n"
         'Respond with JSON: {{"ideas": [{{...}}, ...]}}\n'
         "Each idea must have: name, one_liner, domain, problem, solution, "
         "target_user, monetization, region, tags (list of strings), "
         'inspired_by (list of {{"title": "...", "url": "...", "platform": "..."}} '
-        "objects for sources that inspired this idea — can be empty if original)."
+        "objects for sources that inspired this idea — can be empty if original), "
+        "why_now (what changed recently making this viable), "
+        "moat (defensibility beyond first-mover), "
+        "unfair_insight (a non-obvious observation most people get wrong)."
+    )
+    return system, user
+
+
+def concept_fingerprint_prompt(idea: dict) -> tuple[str, str]:
+    """Return (system, user) prompts to extract a concept fingerprint from an idea."""
+    system = (
+        f"{SYSTEM_PREFIX}\n\n"
+        "Your role: CONCEPT FINGERPRINTER. Extract the core concept of a startup "
+        "idea in 1-2 sentences. Focus on WHAT the product does and WHO it serves, "
+        "not the name or branding. Also identify the problem domain."
+    )
+    user = (
+        f"Summarize the core concept of this idea:\n\n"
+        f"Name: {idea.get('name', 'N/A')}\n"
+        f"One-liner: {idea.get('one_liner', 'N/A')}\n"
+        f"Problem: {idea.get('problem', 'N/A')}\n"
+        f"Solution: {idea.get('solution', 'N/A')}\n"
+        f"Target user: {idea.get('target_user', 'N/A')}\n\n"
+        "Respond with JSON:\n"
+        '{{"concept_summary": "1-2 sentence concept summary", '
+        '"problem_domain": "short domain label"}}'
     )
     return system, user
 
@@ -144,12 +215,31 @@ def judge_prompt(
     builder_out: dict,
     dist_out: dict,
     consumer_out: dict,
+    historical_concepts: list[dict] | None = None,
 ) -> tuple[str, str]:
     system = (
         f"{SYSTEM_PREFIX}\n\n"
         "Your role: JUDGE + LEARNER. You synthesize all agent evaluations "
-        "and produce a final verdict. Be calibrated and decisive."
+        "and produce a final verdict. Be calibrated and decisive.\n\n"
+        "== NOVELTY SCORING RUBRIC ==\n"
+        "1-2: Commodity — dozens of direct competitors doing essentially the same thing\n"
+        "3-4: Slight twist — minor variation on a well-known model (e.g. 'Uber for X')\n"
+        "5-6: Interesting combination — some differentiation but not hard to replicate\n"
+        "7-8: Genuinely novel — clear unfair insight, hard for competitors to copy\n"
+        "9-10: Category-creating — redefines how people think about the problem\n\n"
+        "CALIBRATION TEST: Could you find 5+ existing startups doing essentially this? "
+        "If yes, novelty MUST be <= 4. Be honest and rigorous."
     )
+    historical_block = ""
+    if historical_concepts:
+        items = [
+            f"- {c.get('name', '?')}: {c.get('concept_summary', '')}"
+            for c in historical_concepts[:10]
+        ]
+        historical_block = (
+            "\n\n== PREVIOUSLY SEEN CONCEPTS (for novelty comparison) ==\n"
+            + "\n".join(items)
+        )
     user = (
         f"Judge this startup idea based on all evaluations:\n\n"
         f"== IDEA ==\n"
@@ -169,7 +259,8 @@ def judge_prompt(
         f"== CONSUMER ==\n"
         f"Excitement: {consumer_out.get('overall_excitement', 'N/A')}/10\n"
         f"WTP: {consumer_out.get('willingness_to_pay', 'N/A')}/10\n"
-        f"Key objection: {consumer_out.get('key_objection', 'N/A')}\n\n"
+        f"Key objection: {consumer_out.get('key_objection', 'N/A')}"
+        f"{historical_block}\n\n"
         "Respond with JSON: "
         '{{"scores": {{"novelty": 1-10, "feasibility": 1-10, '
         '"market_potential": 1-10, "defensibility": 1-10, "excitement": 1-10}}, '

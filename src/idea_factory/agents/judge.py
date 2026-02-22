@@ -22,6 +22,7 @@ class JudgeAgent(BaseAgent):
             builder_out=context["builder_out"],
             dist_out=context["dist_out"],
             consumer_out=context["consumer_out"],
+            historical_concepts=context.get("historical_concepts"),
         )
 
     @classmethod

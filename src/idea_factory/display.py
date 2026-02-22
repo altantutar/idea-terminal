@@ -213,10 +213,16 @@ def display_idea_card(idea: dict, judge_output: dict | None = None) -> None:
     # Assemble
     parts: list[Any] = ["\n".join(lines), "", detail_table]
 
-    # Problem / Solution
+    # Problem / Solution / New specificity fields
     parts.append("")
     parts.append(f"[bold]Problem:[/bold]  {idea.get('problem', '')}")
     parts.append(f"[bold]Solution:[/bold] {idea.get('solution', '')}")
+    if idea.get("why_now"):
+        parts.append(f"[bold]Why now:[/bold]  {idea['why_now']}")
+    if idea.get("moat"):
+        parts.append(f"[bold]Moat:[/bold]     {idea['moat']}")
+    if idea.get("unfair_insight"):
+        parts.append(f"[bold]Insight:[/bold]  {idea['unfair_insight']}")
 
     # Inspiration sources
     inspired_by = idea.get("inspired_by", [])
@@ -637,7 +643,13 @@ def display_preferences(prefs: Any) -> None:
                 lines.append(f"  {k:24s} {bar} [{color}]{v:+.1f}[/{color}]")
         elif isinstance(value, list):
             for item in value:
-                lines.append(f"  [red]- {item}[/red]")
+                if isinstance(item, dict):
+                    name = item.get("name", "?")
+                    problem = item.get("problem", "")
+                    display = f"{name} — {problem}" if problem else name
+                    lines.append(f"  [red]- {display}[/red]")
+                else:
+                    lines.append(f"  [red]- {item}[/red]")
 
     console.print(
         Panel(

@@ -79,7 +79,24 @@ CREATE TABLE IF NOT EXISTS scoreboard (
     taste_rating    INTEGER NOT NULL DEFAULT 0,
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS idea_concepts (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    idea_id          INTEGER NOT NULL REFERENCES ideas(id),
+    concept_summary  TEXT NOT NULL,
+    problem_domain   TEXT NOT NULL DEFAULT '',
+    rejection_source TEXT NOT NULL DEFAULT '',
+    created_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
+
+# Columns added after the initial schema — each ALTER is wrapped in
+# try/except because SQLite raises an error if the column already exists.
+_MIGRATIONS = [
+    "ALTER TABLE ideas ADD COLUMN why_now TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE ideas ADD COLUMN moat TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE ideas ADD COLUMN unfair_insight TEXT NOT NULL DEFAULT ''",
+]
 
 
 def get_db(db_path: Path) -> sqlite3.Connection:
@@ -88,10 +105,10 @@ def get_db(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     conn.executescript(_SCHEMA)
-    # Migration: add inspired_by column if it doesn't exist (for existing DBs)
-    try:
-        conn.execute("SELECT inspired_by FROM ideas LIMIT 1")
-    except sqlite3.OperationalError:
-        conn.execute("ALTER TABLE ideas ADD COLUMN inspired_by TEXT NOT NULL DEFAULT '[]'")
-        conn.commit()
+    for stmt in _MIGRATIONS:
+        try:
+            conn.execute(stmt)
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass  # column already exists
     return conn
