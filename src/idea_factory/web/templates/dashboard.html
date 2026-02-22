@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Idea Factory{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="hero-card">
+    <div class="hero-text">
+        <span class="hero-badge">6-Agent Pipeline</span>
+        <h1 class="hero-title">Idea Factory</h1>
+        <p class="hero-body">Generate, stress-test, and evaluate startup ideas through a six-agent pipeline. Each idea passes through Creator, Challenger, Builder, Distributor, Consumer, and Judge agents.</p>
+        <a href="/run" class="hero-cta">
+            Start New Run
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </a>
+    </div>
+    <div class="hero-visual">
+        <svg class="geo-pattern" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="hero-grid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#111827" stroke-width="0.3"/>
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#hero-grid)"/>
+            <circle cx="50%" cy="50%" r="60" fill="none" stroke="#111827" stroke-width="0.4"/>
+            <circle cx="50%" cy="50%" r="40" fill="none" stroke="#111827" stroke-width="0.3"/>
+            <circle cx="50%" cy="50%" r="20" fill="none" stroke="#111827" stroke-width="0.2"/>
+            <line x1="0" y1="50%" x2="100%" y2="50%" stroke="#111827" stroke-width="0.2"/>
+            <line x1="50%" y1="0" x2="50%" y2="100%" stroke="#111827" stroke-width="0.2"/>
+        </svg>
+        <svg class="hero-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+        </svg>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-label">Total Ideas</div>
+        <div class="stat-value">{{ stats.total_ideas }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Winners</div>
+        <div class="stat-value">{{ stats.by_status.get('winner', 0) }}</div>
+        <div class="stat-sub">ideas that passed all agents</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Contenders</div>
+        <div class="stat-value">{{ stats.by_status.get('contender', 0) }}</div>
+        <div class="stat-sub">promising but not perfect</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Avg Score</div>
+        <div class="stat-value">{{ "%.1f"|format(stats.avg_composite_score) if stats.avg_composite_score else "---" }}</div>
+        <div class="stat-sub">composite out of 10</div>
+    </div>
+</div>
+
+<!-- Ideas section -->
+<div class="section-header">
+    <div>
+        <div class="section-title">All Ideas</div>
+        <div class="section-subtitle">Browse generated startup ideas</div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar">
+    <a href="/" class="filter-btn{% if not current_status %} active{% endif %}">All</a>
+    <a href="/?status=winner" class="filter-btn{% if current_status == 'winner' %} active{% endif %}">Winner</a>
+    <a href="/?status=contender" class="filter-btn{% if current_status == 'contender' %} active{% endif %}">Contender</a>
+    <a href="/?status=pass" class="filter-btn{% if current_status == 'pass' %} active{% endif %}">Pass</a>
+    <a href="/?status=killed" class="filter-btn{% if current_status == 'killed' %} active{% endif %}">Killed</a>
+</div>
+
+{% if ideas %}
+<!-- Card grid -->
+<div class="ideas-grid">
+    {% for idea in ideas %}
+    <a href="/ideas/{{ idea.id }}" class="idea-card">
+        <div class="idea-card-visual">
+            <!-- Geometric pattern per card -->
+            {% if loop.index % 3 == 1 %}
+            <svg class="geo-pattern" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <defs><pattern id="grid-{{idea.id}}" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="#111827" stroke-width="0.3"/></pattern></defs>
+                <rect width="100%" height="100%" fill="url(#grid-{{idea.id}})"/>
+            </svg>
+            <svg class="geo-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+            {% elif loop.index % 3 == 2 %}
+            <svg class="geo-pattern" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50%" cy="50%" r="30" fill="none" stroke="#111827" stroke-width="0.3"/>
+                <circle cx="50%" cy="50%" r="50" fill="none" stroke="#111827" stroke-width="0.2"/>
+                <circle cx="50%" cy="50%" r="70" fill="none" stroke="#111827" stroke-width="0.2"/>
+            </svg>
+            <svg class="geo-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/></svg>
+            {% else %}
+            <svg class="geo-pattern" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <line x1="0" y1="0" x2="100%" y2="100%" stroke="#111827" stroke-width="0.2"/>
+                <line x1="100%" y1="0" x2="0" y2="100%" stroke="#111827" stroke-width="0.2"/>
+                <line x1="50%" y1="0" x2="50%" y2="100%" stroke="#111827" stroke-width="0.2"/>
+                <line x1="0" y1="50%" x2="100%" y2="50%" stroke="#111827" stroke-width="0.2"/>
+            </svg>
+            <svg class="geo-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+            {% endif %}
+        </div>
+        <div class="idea-card-info">
+            <div class="idea-card-meta">
+                <div class="idea-card-name">{{ idea.name }}</div>
+                <div class="idea-card-domain">{{ idea.domain }}</div>
+            </div>
+            <div class="idea-card-right">
+                {% if idea.composite_score %}
+                <span class="idea-card-score">{{ "%.1f"|format(idea.composite_score) }}</span>
+                {% endif %}
+                <span class="badge badge-{{ idea.status }}">{{ idea.status | upper }}</span>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>No ideas found. <a href="/run">Start a run</a> to generate some.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Token Costs — Idea Factory{% endblock %}
+{% block breadcrumb %}Token Costs{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 24px">Token Usage</h1>
+
+{% set total_in = summary.total_input_tokens %}
+{% set total_out = summary.total_output_tokens %}
+{% set total = total_in + total_out %}
+
+{% if total == 0 %}
+<div class="empty-state">
+    <p>No token usage recorded yet. <a href="/run">Run some loops</a> first.</p>
+</div>
+{% else %}
+
+<!-- Summary cards -->
+<div class="costs-summary">
+    <div class="stat-card">
+        <div class="stat-label">Input Tokens</div>
+        <div class="stat-value">{{ "{:,}".format(total_in) }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Output Tokens</div>
+        <div class="stat-value">{{ "{:,}".format(total_out) }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Tokens</div>
+        <div class="stat-value">{{ "{:,}".format(total) }}</div>
+    </div>
+</div>
+
+<!-- By agent -->
+{% if summary.by_agent %}
+<div class="section-header">
+    <div>
+        <div class="section-title">By Agent</div>
+        <div class="section-subtitle">Token usage breakdown per pipeline agent</div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 32px">
+    <table class="cost-table">
+        <thead>
+            <tr>
+                <th>Agent</th>
+                <th class="number">Calls</th>
+                <th class="number">Input</th>
+                <th class="number">Output</th>
+                <th class="number">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in summary.by_agent %}
+            <tr>
+                <td><span class="badge">{{ row.agent_name | upper }}</span></td>
+                <td class="number">{{ row.calls }}</td>
+                <td class="number">{{ "{:,}".format(row.input_tokens) }}</td>
+                <td class="number">{{ "{:,}".format(row.output_tokens) }}</td>
+                <td class="number"><strong>{{ "{:,}".format(row.input_tokens + row.output_tokens) }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- By model -->
+{% if summary.by_model %}
+<div class="section-header">
+    <div>
+        <div class="section-title">By Model</div>
+        <div class="section-subtitle">Token usage by LLM provider and model</div>
+    </div>
+</div>
+
+<div class="card">
+    <table class="cost-table">
+        <thead>
+            <tr>
+                <th>Provider</th>
+                <th>Model</th>
+                <th class="number">Calls</th>
+                <th class="number">Tokens</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in summary.by_model %}
+            <tr>
+                <td><strong>{{ row.provider }}</strong></td>
+                <td style="color:#6B7280">{{ row.model }}</td>
+                <td class="number">{{ row.calls }}</td>
+                <td class="number"><strong>{{ "{:,}".format(row.input_tokens + row.output_tokens) }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

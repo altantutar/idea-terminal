@@ -155,6 +155,24 @@ def livestream(
     )
 
 
+@app.command()
+def web(
+    host: str = typer.Option("127.0.0.1", "--host", "-H", help="Bind host"),
+    port: int = typer.Option(8000, "--port", "-p", help="Bind port"),
+) -> None:
+    """Launch the web dashboard."""
+    try:
+        from idea_factory.web import main as web_main
+    except ImportError:
+        console.print(
+            "[red]Web dependencies not installed.[/red]\n"
+            '[dim]Run: pip install -e ".[web]"[/dim]'
+        )
+        raise typer.Exit(1)
+    console.print(f"[bold bright_cyan]Starting web dashboard at http://{host}:{port}[/bold bright_cyan]")
+    web_main(host=host, port=port)
+
+
 @app.command("list")
 def list_ideas(
     status: Optional[str] = typer.Option(None, "--status", "-s", help="Filter by status"),

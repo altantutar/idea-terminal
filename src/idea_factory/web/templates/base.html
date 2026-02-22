@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Idea Factory{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                    <polyline points="2 17 12 22 22 17"></polyline>
+                    <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
+            </div>
+            <div class="logo-text">
+                <span class="logo-label">STARTUP</span>
+                <span class="logo-title">Idea Factory</span>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <span class="sidebar-section-label">MAIN MENU</span>
+            <a href="/" class="sidebar-item{% if request.url.path == '/' %} active{% endif %}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>
+                Dashboard
+            </a>
+            <a href="/run" class="sidebar-item{% if request.url.path == '/run' %} active{% endif %}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Run Loop
+            </a>
+        </div>
+
+        <div class="sidebar-section">
+            <span class="sidebar-section-label">MANAGEMENT</span>
+            <a href="/costs" class="sidebar-item{% if request.url.path == '/costs' %} active{% endif %}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                Token Costs
+            </a>
+        </div>
+
+        <div class="sidebar-footer">
+            <span class="sidebar-section-label">6-AGENT PIPELINE</span>
+        </div>
+    </aside>
+
+    <!-- Main content area -->
+    <div class="main-wrapper">
+        <!-- Sticky header -->
+        <header class="top-header">
+            <div class="breadcrumbs">
+                <span class="breadcrumb-item">Idea Factory</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                <span class="breadcrumb-current">{% block breadcrumb %}Dashboard{% endblock %}</span>
+            </div>
+            <div class="header-right">
+                <div class="header-search">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="text" placeholder="Search ideas..." class="search-input" />
+                </div>
+                <div class="header-avatar">IF</div>
+            </div>
+        </header>
+
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

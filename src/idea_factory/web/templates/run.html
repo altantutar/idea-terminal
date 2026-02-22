@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Run Loop — Idea Factory{% endblock %}
+{% block breadcrumb %}Run Loop{% endblock %}
+
+{% block content %}
+<h1 style="margin-bottom: 24px">Run Loop</h1>
+
+<!-- Provider setup -->
+<div class="config-card" id="provider-card">
+    <div class="config-card-header">
+        <span>LLM Provider</span>
+        <span id="provider-badge" class="badge {% if has_key %}badge-winner{% else %}badge-pending{% endif %}">
+            {% if has_key %}CONNECTED{% else %}NOT CONFIGURED{% endif %}
+        </span>
+    </div>
+    <div class="config-body">
+        <div id="provider-status" {% if has_key %}style="display:none"{% endif %}>
+            <div class="form-group" style="margin-bottom: 16px">
+                <span class="form-label">Select Provider</span>
+                <div class="provider-options">
+                    <label class="domain-option">
+                        <input type="radio" name="provider" value="anthropic" {% if provider == 'anthropic' %}checked{% endif %} />
+                        <span class="domain-label"><strong>Anthropic</strong> — Claude (claude-sonnet-4-6)</span>
+                    </label>
+                    <label class="domain-option">
+                        <input type="radio" name="provider" value="openai" {% if provider == 'openai' %}checked{% endif %} />
+                        <span class="domain-label"><strong>OpenAI</strong> — GPT (gpt-4o)</span>
+                    </label>
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 16px">
+                <label class="form-label" for="api-key">API Key</label>
+                <input type="password" id="api-key" placeholder="Paste your API key" class="form-input" autocomplete="off" />
+            </div>
+            <button type="button" id="btn-save-key" class="btn btn-primary">Save Key</button>
+            <p id="key-error" style="color:#991B1B; font-size:11px; margin-top:8px; display:none"></p>
+        </div>
+        <div id="provider-connected" {% if not has_key %}style="display:none"{% endif %}>
+            <p style="color:#111827; font-size:12px; margin-bottom:8px">
+                <strong>Provider:</strong> <span id="connected-provider">{{ provider }}</span>
+                &nbsp;&middot;&nbsp;
+                <strong>Model:</strong> <span id="connected-model">{{ model }}</span>
+            </p>
+            <button type="button" id="btn-change-provider" class="btn" style="font-size:11px; padding:6px 12px">Change Provider</button>
+        </div>
+    </div>
+</div>
+
+<!-- Config form -->
+<div class="config-card" id="run-config">
+    <div class="config-card-header">
+        <span>Configuration</span>
+    </div>
+    <div class="config-body">
+        <form id="start-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label" for="region">Region</label>
+                    <input type="text" name="region" id="region" value="Global" class="form-input" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="constraints">Constraints</label>
+                    <input type="text" name="constraints" id="constraints" placeholder="e.g. solo founder, no hardware" class="form-input" />
+                </div>
+            </div>
+
+            <div class="form-group full-width" style="margin-bottom: 16px">
+                <span class="form-label">Domains</span>
+                <div class="domain-grid">
+                    {% for domain in domain_choices %}
+                    <label class="domain-option">
+                        <input type="checkbox" name="domains" value="{{ domain }}" {% if domain == "Software engineering" %}checked{% endif %} />
+                        <span class="domain-label">{{ domain }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="checkbox-row">
+                <input type="checkbox" name="claude_check" id="claude_check" />
+                <label for="claude_check">Enable Claude Check (one-shottability assessment)</label>
+            </div>
+            <div class="button-row">
+                <button type="submit" id="btn-start" class="btn btn-primary" {% if not has_key %}disabled{% endif %}>Start Run</button>
+                <button type="button" id="btn-stop" class="btn btn-danger" disabled>Stop</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Status panel -->
+<div class="config-card" id="run-status" style="display:none">
+    <div class="config-card-header">
+        <span>Run Progress</span>
+        <span id="run-status-badge" class="badge badge-pending">PENDING</span>
+    </div>
+    <div class="config-body">
+        <div id="event-timeline"></div>
+    </div>
+</div>
+
+<!-- Feedback form -->
+<div class="feedback-card" id="feedback-form" style="display:none">
+    <div class="config-card-header">
+        <span>Your Feedback</span>
+    </div>
+    <div class="config-body">
+        <div id="feedback-idea-info" class="feedback-idea-info"></div>
+        <form id="fb-form">
+            <input type="hidden" id="fb-run-id" />
+
+            <div class="form-label" style="margin-bottom: 8px">Decision</div>
+            <div class="feedback-decisions">
+                <label><input type="radio" name="decision" value="love" /> Love</label>
+                <label><input type="radio" name="decision" value="like" checked /> Like</label>
+                <label><input type="radio" name="decision" value="meh" /> Meh</label>
+                <label><input type="radio" name="decision" value="hate" /> Hate</label>
+            </div>
+
+            <div class="form-label" style="margin-bottom: 6px">Rating</div>
+            <div class="range-row">
+                <input type="range" name="rating" min="1" max="10" value="5" id="fb-rating" />
+                <output id="fb-rating-val">5</output>
+            </div>
+
+            <div class="form-grid" style="margin-top:12px">
+                <div class="form-group">
+                    <label class="form-label">Tags (comma-separated)</label>
+                    <input type="text" name="tags" placeholder="optional" class="form-input" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <input type="text" name="note" placeholder="optional" class="form-input" />
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="margin-top:8px">Submit Feedback</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ratingInput = document.getElementById('fb-rating');
+const ratingVal = document.getElementById('fb-rating-val');
+if (ratingInput) {
+    ratingInput.addEventListener('input', () => { ratingVal.textContent = ratingInput.value; });
+}
+</script>
+{% endblock %}

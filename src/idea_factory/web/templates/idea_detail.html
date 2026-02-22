@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}{{ idea.name }} — Idea Factory{% endblock %}
+{% block breadcrumb %}{{ idea.name }}{% endblock %}
+
+{% block content %}
+<a href="/" class="back-link">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    Back to dashboard
+</a>
+
+<!-- Idea header card -->
+<div class="idea-header-card">
+    <div class="idea-header-top">
+        <div class="idea-title-row">
+            <h1>{{ idea.name }}</h1>
+            <span class="badge badge-{{ idea.status }}">{{ idea.status | upper }}</span>
+        </div>
+        {% if idea.one_liner %}
+        <p class="one-liner">{{ idea.one_liner }}</p>
+        {% endif %}
+        {% if idea.tags %}
+        <div class="tag-list">
+            {% for tag in idea.tags %}
+            <span class="tag-pill">{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="idea-meta-grid">
+        <div class="meta-item">
+            <div class="meta-label">Domain</div>
+            <div class="meta-value">{{ idea.domain }}</div>
+        </div>
+        <div class="meta-item">
+            <div class="meta-label">Target User</div>
+            <div class="meta-value">{{ idea.target_user }}</div>
+        </div>
+        <div class="meta-item">
+            <div class="meta-label">Region</div>
+            <div class="meta-value">{{ idea.region }}</div>
+        </div>
+        <div class="meta-item">
+            <div class="meta-label">Monetization</div>
+            <div class="meta-value">{{ idea.monetization }}</div>
+        </div>
+        <div class="meta-item">
+            <div class="meta-label">Composite Score</div>
+            <div class="meta-value">{% if idea.composite_score %}{{ "%.1f"|format(idea.composite_score) }}/10{% else %}---{% endif %}</div>
+        </div>
+    </div>
+
+    <div class="ps-grid">
+        <div class="ps-block">
+            <h4>Problem</h4>
+            <p>{{ idea.problem }}</p>
+        </div>
+        <div class="ps-block">
+            <h4>Solution</h4>
+            <p>{{ idea.solution }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Agent output panels -->
+{% for ao in outputs %}
+{% set agent = ao.agent_name %}
+{% set out = ao.output %}
+<div class="agent-panel agent-{{ agent }}">
+    <div class="agent-panel-header">
+        <div class="agent-indicator"></div>
+        <span class="agent-label">{{ agent | upper }}</span>
+    </div>
+    <div class="agent-panel-body">
+
+    {% if agent == "challenger" %}
+        <p><strong>Verdict:</strong> <span class="verdict-{{ out.verdict | lower if out.verdict else 'pass' }}">{{ out.verdict }}</span></p>
+        {% if out.fatal_flaws %}
+        <h5>Fatal Flaws</h5>
+        <ul class="flaw-list">{% for f in out.fatal_flaws %}<li>{{ f }}</li>{% endfor %}</ul>
+        {% endif %}
+        {% if out.risks %}
+        <h5>Risks</h5>
+        <ul class="risk-list">{% for r in out.risks %}<li>{{ r }}</li>{% endfor %}</ul>
+        {% endif %}
+        {% if out.competitor_overlap %}<p><strong>Competitors:</strong> {{ out.competitor_overlap }}</p>{% endif %}
+        {% if out.survival_reason %}<p><strong>Survival reason:</strong> {{ out.survival_reason }}</p>{% endif %}
+
+    {% elif agent == "builder" %}
+        <p><strong>Buildable:</strong> <span class="verdict-{{ 'survive' if out.buildable else 'kill' }}">{{ "Yes" if out.buildable else "No" }}</span></p>
+        {% if out.mvp_scope %}<p><strong>MVP scope:</strong> {{ out.mvp_scope }}</p>{% endif %}
+        {% if out.tech_stack %}
+        <h5>Tech Stack</h5>
+        <table class="agent-table"><tbody>
+            {% for item in out.tech_stack %}
+            <tr><td><strong>{{ item.layer if item is mapping else item }}</strong></td><td>{{ item.choice if item is mapping else "" }}</td></tr>
+            {% endfor %}
+        </tbody></table>
+        {% endif %}
+        {% if out.milestones %}
+        <h5>Milestones</h5>
+        <table class="agent-table"><tbody>
+            {% for m in out.milestones %}
+            <tr><td><strong>{{ m.week if m is mapping else m }}</strong></td><td>{{ m.goal if m is mapping else "" }}</td></tr>
+            {% endfor %}
+        </tbody></table>
+        {% endif %}
+        {% if out.build_risk %}<p><strong>Risk:</strong> {{ out.build_risk }}</p>{% endif %}
+
+    {% elif agent == "distributor" %}
+        {% if out.primary_channel %}<p><strong>Primary channel:</strong> {{ out.primary_channel }}</p>{% endif %}
+        {% if out.channels %}
+        <h5>Channels</h5>
+        <table class="agent-table">
+            <thead><tr><th>Channel</th><th>Tactic</th><th>CAC</th></tr></thead>
+            <tbody>
+            {% for ch in out.channels %}
+            <tr>
+                <td>{{ ch.channel if ch is mapping else ch }}</td>
+                <td>{{ ch.tactic if ch is mapping else "" }}</td>
+                <td>{{ ch.expected_cac if ch is mapping else "" }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        {% if out.viral_hook %}<p><strong>Viral hook:</strong> {{ out.viral_hook }}</p>{% endif %}
+        {% if out.launch_strategy %}<p><strong>Launch:</strong> {{ out.launch_strategy }}</p>{% endif %}
+        {% if out.moat %}<p><strong>Moat:</strong> {{ out.moat }}</p>{% endif %}
+
+    {% elif agent == "consumer" %}
+        {% if out.personas %}
+        <h5>Persona Reactions</h5>
+        {% for p in out.personas %}
+        <div class="persona-card">
+            <strong>{{ p.persona if p is mapping else p }}</strong>
+            <span class="badge {% if p is mapping and p.would_pay %}badge-winner{% else %}badge-killed{% endif %}">
+                {{ "would pay" if (p is mapping and p.would_pay) else "won't pay" }}
+            </span>
+            <p>{{ p.reaction if p is mapping else "" }}</p>
+            {% if p is mapping and p.objection %}<p style="color:#9CA3AF"><em>Objection: {{ p.objection }}</em></p>{% endif %}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% if out.overall_excitement is defined %}
+        <div class="score-row">
+            <strong>Excitement</strong>
+            <div class="score-bar"><div class="score-fill score-fill-color" style="width: {{ out.overall_excitement * 10 }}%">{{ out.overall_excitement }}/10</div></div>
+        </div>
+        {% endif %}
+        {% if out.willingness_to_pay is defined %}
+        <div class="score-row">
+            <strong>WTP</strong>
+            <div class="score-bar"><div class="score-fill score-fill-color" style="width: {{ out.willingness_to_pay * 10 }}%">{{ out.willingness_to_pay }}/10</div></div>
+        </div>
+        {% endif %}
+        {% if out.key_objection %}<p><strong>Key objection:</strong> {{ out.key_objection }}</p>{% endif %}
+
+    {% elif agent == "judge" %}
+        {% if out.scores %}
+        <h5>Scores</h5>
+        {% for label, val in out.scores.items() %}
+        <div class="score-row">
+            <strong>{{ label | replace("_", " ") | title }}</strong>
+            <div class="score-bar"><div class="score-fill {% if val >= 8 %}score-high{% elif val >= 5 %}score-mid{% else %}score-low{% endif %}" style="width: {{ val * 10 }}%">{{ val }}/10</div></div>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% if out.composite_score is defined %}
+        <div class="composite-score">{{ "%.1f"|format(out.composite_score) }}/10</div>
+        {% endif %}
+        {% if out.verdict %}
+        <p><strong>Verdict:</strong> <span class="verdict-{{ out.verdict | lower }}">{{ out.verdict }}</span></p>
+        {% endif %}
+        {% if out.one_line_summary %}<p style="color:#6B7280"><em>{{ out.one_line_summary }}</em></p>{% endif %}
+        {% if out.archetype %}<p><strong>Archetype:</strong> {{ out.archetype }}</p>{% endif %}
+
+    {% elif agent == "claude_check" %}
+        {% if out.verdict %}
+        <p><strong>Verdict:</strong> <span class="cc-verdict cc-{{ out.verdict | replace('_', '-') }}">{{ out.verdict | replace("_", " ") | upper }}</span></p>
+        {% endif %}
+        {% if out.claude_product %}<p><strong>Claude product:</strong> {{ out.claude_product }}</p>{% endif %}
+        {% if out.time_estimate %}<p><strong>Time estimate:</strong> {{ out.time_estimate }}</p>{% endif %}
+        {% if out.what_it_builds %}<p><strong>What Claude builds:</strong> {{ out.what_it_builds }}</p>{% endif %}
+        {% if out.what_it_cant %}<p><strong>What it can't:</strong> {{ out.what_it_cant }}</p>{% endif %}
+        {% if out.defensibility_note %}<p><strong>Defensibility:</strong> <em>{{ out.defensibility_note }}</em></p>{% endif %}
+
+    {% else %}
+        <pre style="font-size:11px; color:#6B7280; overflow-x:auto">{{ out | tojson(indent=2) }}</pre>
+    {% endif %}
+
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
