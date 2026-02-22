@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass, field
 
 from rich.console import Console
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger("idea_factory.trending")
 console = Console()

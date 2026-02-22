@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from typing import Any, Callable
 
 from pydantic import BaseModel
 from rich.console import Console
@@ -15,7 +15,7 @@ console = Console(stderr=True)
 
 
 def run_with_reflexion(
-    agent: object,
+    agent: Any,
     context: dict,
     reflection_prompt_fn: Callable[[dict, dict], tuple[str, str]],
     max_rounds: int = 2,
@@ -33,7 +33,7 @@ def run_with_reflexion(
     keeps the current output unchanged.
     """
     # Initial pass — identical to calling agent.run(context) directly.
-    output = agent.run(context)  # type: ignore[union-attr]
+    output = agent.run(context)
 
     for round_num in range(1, max_rounds + 1):
         # Build the reflection prompt from the current output.
@@ -47,7 +47,7 @@ def run_with_reflexion(
 
         # Ask the LLM to critique the output.
         try:
-            reflection: ReflectionOutput = agent.provider.generate(  # type: ignore[union-attr]
+            reflection: ReflectionOutput = agent.provider.generate(
                 ref_system, ref_user, ReflectionOutput
             )
         except ValueError as exc:
@@ -70,7 +70,7 @@ def run_with_reflexion(
         )
 
         try:
-            system_prompt, user_prompt = agent.build_prompts(context)  # type: ignore[union-attr]
+            system_prompt, user_prompt = agent.build_prompts(context)
             critique_block = (
                 "\n\n[REFLECTION FEEDBACK — address these issues]\n"
                 f"Critique: {reflection.critique}\n"
@@ -79,8 +79,8 @@ def run_with_reflexion(
                 "[END REFLECTION FEEDBACK]"
             )
             augmented_user = user_prompt + critique_block
-            output = agent.provider.generate(  # type: ignore[union-attr]
-                system_prompt, augmented_user, agent.output_model()  # type: ignore[union-attr]
+            output = agent.provider.generate(
+                system_prompt, augmented_user, agent.output_model()
             )
         except ValueError as exc:
             logger.warning("Re-run parse failed (round %d): %s", round_num, exc)
@@ -89,4 +89,4 @@ def run_with_reflexion(
             )
             break
 
-    return output
+    return output  # type: ignore[no-any-return]

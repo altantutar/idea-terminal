@@ -140,4 +140,8 @@ def build_taste_prefix(prefs: PreferenceState) -> str:
 
     if not lines:
         return ""
-    return "\n\nUser taste profile:\n" + "\n".join(f"- {l}" for l in lines) + "\n"
+    return (
+        "\n\nUser taste profile:\n"
+        + "\n".join(f"- {line}" for line in lines)
+        + "\n"
+    )

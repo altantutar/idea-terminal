@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 # ---------------------------------------------------------------------------
 # Famous personas — rich descriptions that shape the Taste Agent's voice
 # ---------------------------------------------------------------------------

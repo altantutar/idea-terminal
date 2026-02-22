@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-
 # ---------------------------------------------------------------------------
 # Creator output
 # ---------------------------------------------------------------------------
@@ -159,10 +158,16 @@ class ClaudeCheckOutput(BaseModel):
     """Output from the Claude Check agent — can Claude one-shot this?"""
 
     verdict: str = Field(description="one_shottable / needs_work / not_feasible")
-    claude_product: str = Field(description="Which Claude product could do it (e.g. Claude Code, Claude Chat + Artifacts)")
+    claude_product: str = Field(
+        description="Which Claude product could do it"
+        " (e.g. Claude Code, Claude Chat + Artifacts)"
+    )
     time_estimate: str = Field(description="e.g. ~2 hours, ~1 day, not applicable")
     what_it_builds: str = Field(description="What Claude could produce in one session")
-    what_it_cant: str = Field(description="What remains unsolved (data moat, distribution, regulatory, infra)")
+    what_it_cant: str = Field(
+        description="What remains unsolved"
+        " (data moat, distribution, regulatory, infra)"
+    )
     defensibility_note: str = Field(description="Implication for the startup's moat")
 
 

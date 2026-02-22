@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import signal
-import sqlite3
-import sys
 
-from rich.console import Console
 from rich.panel import Panel
 
 from idea_factory.agents.builder import BuilderAgent
@@ -30,14 +26,14 @@ from idea_factory.display import (
     prompt_feedback,
 )
 from idea_factory.llm.factory import get_provider
-from idea_factory.prompts import challenger_reflection_prompt, judge_reflection_prompt
-from idea_factory.reflexion import run_with_reflexion
 from idea_factory.preferences import (
     build_taste_prefix,
     load_preferences,
     save_preferences,
     update_preferences,
 )
+from idea_factory.prompts import challenger_reflection_prompt, judge_reflection_prompt
+from idea_factory.reflexion import run_with_reflexion
 
 
 def _track_usage(conn, agent, idea_id, settings):
@@ -152,11 +148,19 @@ def run_loop(
 
                 if ch_dict["verdict"] == "SURVIVE":
                     survivors.append((idea_dict, ch_dict))
-                    display_challenger_result(idea_dict["name"], survived=True, one_liner=idea_dict.get("one_liner", ""))
+                    display_challenger_result(
+                        idea_dict["name"],
+                        survived=True,
+                        one_liner=idea_dict.get("one_liner", ""),
+                    )
                 else:
                     repo.update_idea_status(conn, idea_dict["id"], "killed")
                     recent_rejections.append(idea_dict["name"])
-                    display_challenger_result(idea_dict["name"], survived=False, one_liner=idea_dict.get("one_liner", ""))
+                    display_challenger_result(
+                        idea_dict["name"],
+                        survived=False,
+                        one_liner=idea_dict.get("one_liner", ""),
+                    )
 
             if not survivors:
                 console.print(
@@ -166,14 +170,21 @@ def run_loop(
 
             # Take top-K survivors (first K by order)
             top_survivors = survivors[:top_k]
+            n_adv = len(top_survivors)
             console.print(
-                f"\n  [bold bright_cyan]{len(top_survivors)} idea(s) advancing to full evaluation[/bold bright_cyan]\n"
+                f"\n  [bold bright_cyan]{n_adv} idea(s)"
+                " advancing to full evaluation"
+                "[/bold bright_cyan]\n"
             )
 
             # ----- FULL PIPELINE for each survivor -----
             finalists: list[tuple[dict, dict]] = []  # (idea, judge_dict)
             for idea_dict, ch_dict in top_survivors:
-                console.rule(f"[bold bright_white]{idea_dict['name']}[/bold bright_white]", style="dim")
+                name = idea_dict['name']
+                console.rule(
+                    f"[bold bright_white]{name}[/bold bright_white]",
+                    style="dim",
+                )
 
                 # Builder
                 with agent_status("builder"):
@@ -183,7 +194,7 @@ def run_loop(
                 _track_usage(conn, builder, idea_dict["id"], settings)
 
                 if not b_dict.get("buildable", True):
-                    console.print(f"  [bold red]NOT BUILDABLE[/bold red] [dim]— skipping[/dim]")
+                    console.print("  [bold red]NOT BUILDABLE[/bold red] [dim]— skipping[/dim]")
                     repo.update_idea_status(conn, idea_dict["id"], "unbuildable")
                     continue
 

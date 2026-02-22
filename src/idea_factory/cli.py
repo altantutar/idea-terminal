@@ -10,7 +10,6 @@ from rich.console import Console
 from rich.prompt import Prompt
 
 from idea_factory.config import Settings
-from idea_factory.logging_cfg import setup_logging
 from idea_factory.db import repository as repo
 from idea_factory.db.connection import get_db
 from idea_factory.display import (
@@ -27,8 +26,9 @@ from idea_factory.display import (
     display_session_resume,
     display_stats,
 )
+from idea_factory.logging_cfg import setup_logging
 from idea_factory.loop import run_loop
-from idea_factory.preferences import load_preferences, PreferenceState
+from idea_factory.preferences import load_preferences
 
 app = typer.Typer(
     name="idea-factory",
@@ -63,7 +63,10 @@ DOMAIN_CHOICES = [
 @app.command()
 def start(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
-    claude_check: bool = typer.Option(False, "--claude-check", "-cc", help="Run Claude Check agent to assess one-shottability"),
+    claude_check: bool = typer.Option(
+        False, "--claude-check", "-cc",
+        help="Run Claude Check agent to assess one-shottability",
+    ),
 ) -> None:
     """Start the interactive idea generation loop."""
     import os
@@ -104,7 +107,10 @@ def start(
     console.rule("[bold green]Starting idea generation loop[/bold green]")
     console.print()
 
-    run_loop(region, domains, constraints, settings, session_id=session_id, claude_check=claude_check)
+    run_loop(
+        region, domains, constraints, settings,
+        session_id=session_id, claude_check=claude_check,
+    )
 
 
 @app.command()
@@ -113,13 +119,17 @@ def livestream(
         None, "--persona", "-p", help="Persona: number, name, @handle, or custom text"
     ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
-    claude_check: bool = typer.Option(False, "--claude-check", "-cc", help="Run Claude Check agent to assess one-shottability"),
+    claude_check: bool = typer.Option(
+        False, "--claude-check", "-cc",
+        help="Run Claude Check agent to assess one-shottability",
+    ),
 ) -> None:
     """Start the autonomous livestream mode with an AI taste agent."""
     import os
+
+    from idea_factory.livestream import run_livestream
     from idea_factory.personas import resolve_persona
     from idea_factory.trending import fetch_persona_context
-    from idea_factory.livestream import run_livestream
 
     if verbose:
         os.environ["IDEA_FACTORY_VERBOSE"] = "1"
@@ -169,7 +179,10 @@ def web(
             '[dim]Run: pip install -e ".[web]"[/dim]'
         )
         raise typer.Exit(1)
-    console.print(f"[bold bright_cyan]Starting web dashboard at http://{host}:{port}[/bold bright_cyan]")
+    console.print(
+        f"[bold bright_cyan]Starting web dashboard at"
+        f" http://{host}:{port}[/bold bright_cyan]"
+    )
     web_main(host=host, port=port)
 
 
@@ -311,7 +324,10 @@ def _prompt_provider_choice() -> str:
     """Show a numbered provider picker and return the selected key."""
     console.print("[bold]Choose your LLM provider:[/bold]\n")
     for i, (_, name, desc) in enumerate(_PROVIDERS, 1):
-        console.print(f"  [bold bright_cyan]{i}.[/bold bright_cyan]  [bold]{name}[/bold]  [dim]{desc}[/dim]")
+        console.print(
+            f"  [bold bright_cyan]{i}.[/bold bright_cyan]"
+            f"  [bold]{name}[/bold]  [dim]{desc}[/dim]"
+        )
     console.print()
     choice = Prompt.ask("Select", choices=["1", "2"], default="1")
     return _PROVIDERS[int(choice) - 1][0]

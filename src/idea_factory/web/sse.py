@@ -33,7 +33,7 @@ async def sse_stream(run_id: str):
                             yield f"event: {event['event']}\ndata: {json.dumps(event['data'])}\n\n"
                         except queue.Empty:
                             break
-                    yield f"event: done\ndata: {{}}\n\n"
+                    yield "event: done\ndata: {}\n\n"
                     return
                 await asyncio.sleep(0.3)
                 continue

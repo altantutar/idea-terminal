@@ -5,7 +5,6 @@ from __future__ import annotations
 import signal
 import time
 
-from rich.console import Console
 from rich.panel import Panel
 
 from idea_factory.agents.builder import BuilderAgent
@@ -180,8 +179,11 @@ def run_livestream(
                 continue
 
             top_survivors = survivors[:top_k]
+            n_adv = len(top_survivors)
             console.print(
-                f"\n  [bold bright_cyan]{len(top_survivors)} idea(s) advancing to full evaluation[/bold bright_cyan]\n"
+                f"\n  [bold bright_cyan]{n_adv} idea(s)"
+                " advancing to full evaluation"
+                "[/bold bright_cyan]\n"
             )
 
             # ----- FULL PIPELINE for each survivor -----

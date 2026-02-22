@@ -5,13 +5,12 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from rich.columns import Columns
+from rich import box
 from rich.console import Console, Group
 from rich.panel import Panel
 from rich.prompt import IntPrompt, Prompt
 from rich.table import Table
 from rich.text import Text
-from rich import box
 
 console = Console()
 
@@ -108,7 +107,10 @@ def display_domain_picker() -> None:
         left = f"[bold bright_cyan]{i + 1:>2}.[/bold bright_cyan]  {DOMAIN_CHOICES[i]}"
         right_idx = i + mid
         if right_idx < len(DOMAIN_CHOICES):
-            right = f"[bold bright_cyan]{right_idx + 1:>2}.[/bold bright_cyan]  {DOMAIN_CHOICES[right_idx]}"
+            right = (
+                f"[bold bright_cyan]{right_idx + 1:>2}."
+                f"[/bold bright_cyan]  {DOMAIN_CHOICES[right_idx]}"
+            )
         else:
             right = ""
         table.add_row(left, right)
@@ -147,7 +149,10 @@ def _score_bar(value: int, max_val: int = 10, width: int = 10) -> str:
         color = "yellow"
     else:
         color = "red"
-    bar = f"[{color}]{_SCORE_BLOCK * filled}[/{color}]" + f"[dim]{_SCORE_EMPTY * (max_val - filled)}[/dim]"
+    bar = (
+        f"[{color}]{_SCORE_BLOCK * filled}[/{color}]"
+        f"[dim]{_SCORE_EMPTY * (max_val - filled)}[/dim]"
+    )
     return f"{bar} [bold]{value}[/bold]/{max_val}"
 
 
@@ -223,7 +228,9 @@ def display_idea_card(idea: dict, judge_output: dict | None = None) -> None:
     # Pick border color based on verdict
     if judge_output:
         verdict = judge_output.get("verdict", "PASS")
-        border = {"WINNER": "green", "CONTENDER": "yellow", "PASS": "red"}.get(verdict, "bright_blue")
+        border = {
+            "WINNER": "green", "CONTENDER": "yellow", "PASS": "red",
+        }.get(verdict, "bright_blue")
     else:
         border = "bright_blue"
 
@@ -315,10 +322,17 @@ def display_stats(stats: dict[str, Any]) -> None:
     table.add_column("Metric", style="bold")
     table.add_column("Value", justify="right")
 
-    table.add_row("Total ideas", f"[bold bright_white]{stats.get('total_ideas', 0)}[/bold bright_white]")
+    total = stats.get('total_ideas', 0)
+    table.add_row(
+        "Total ideas",
+        f"[bold bright_white]{total}[/bold bright_white]",
+    )
 
     for status, count in stats.get("by_status", {}).items():
-        color = {"winner": "green", "contender": "yellow", "pass": "red", "killed": "red"}.get(status, "white")
+        color = {
+            "winner": "green", "contender": "yellow",
+            "pass": "red", "killed": "red",
+        }.get(status, "white")
         table.add_row(f"  {status}", f"[{color}]{count}[/{color}]")
 
     avg = stats.get("avg_composite_score")
@@ -327,7 +341,12 @@ def display_stats(stats: dict[str, Any]) -> None:
     table.add_row("Feedback given", str(stats.get("total_feedback", 0)))
 
     console.print(
-        Panel(table, title="[bold]Idea Factory Stats[/bold]", border_style="bright_cyan", expand=False)
+        Panel(
+            table,
+            title="[bold]Idea Factory Stats[/bold]",
+            border_style="bright_cyan",
+            expand=False,
+        )
     )
 
 
@@ -394,7 +413,10 @@ def _format_agent_output(agent_name: str, output: dict) -> Panel:
 
     elif agent_name == "builder":
         buildable = output.get("buildable", False)
-        lines.append(f"[bold]Buildable:[/bold] {'[green]Yes[/green]' if buildable else '[red]No[/red]'}")
+        build_badge = (
+            "[green]Yes[/green]" if buildable else "[red]No[/red]"
+        )
+        lines.append(f"[bold]Buildable:[/bold] {build_badge}")
         if output.get("mvp_scope"):
             lines.append(f"[bold]MVP scope:[/bold] {output['mvp_scope']}")
         if output.get("tech_stack"):
@@ -447,8 +469,15 @@ def _format_agent_output(agent_name: str, output: dict) -> Panel:
                 lines.append("")
         excitement = output.get("overall_excitement", "?")
         wtp = output.get("willingness_to_pay", "?")
-        lines.append(f"[bold]Excitement:[/bold] {_score_bar(excitement) if isinstance(excitement, int) else excitement}")
-        lines.append(f"[bold]WTP:[/bold]        {_score_bar(wtp) if isinstance(wtp, int) else wtp}")
+        exc_display = (
+            _score_bar(excitement) if isinstance(excitement, int)
+            else excitement
+        )
+        wtp_display = (
+            _score_bar(wtp) if isinstance(wtp, int) else wtp
+        )
+        lines.append(f"[bold]Excitement:[/bold] {exc_display}")
+        lines.append(f"[bold]WTP:[/bold]        {wtp_display}")
         if output.get("key_objection"):
             lines.append(f"\n[bold]Key objection:[/bold] {output['key_objection']}")
 
@@ -460,7 +489,11 @@ def _format_agent_output(agent_name: str, output: dict) -> Panel:
         composite = output.get("composite_score", 0)
         lines.append(f"\n[bold]Composite:[/bold] {composite:.1f}/10")
         verdict = output.get("verdict", "")
-        style = {"WINNER": "bold green", "CONTENDER": "bold yellow", "PASS": "bold red"}.get(verdict, "white")
+        style = {
+            "WINNER": "bold green",
+            "CONTENDER": "bold yellow",
+            "PASS": "bold red",
+        }.get(verdict, "white")
         lines.append(f"[bold]Verdict:[/bold] [{style}]{verdict}[/{style}]")
         if output.get("one_line_summary"):
             lines.append(f"[dim italic]{output['one_line_summary']}[/dim italic]")
@@ -484,7 +517,11 @@ def _format_agent_output(agent_name: str, output: dict) -> Panel:
         if output.get("what_it_cant"):
             lines.append(f"[bold]What it can't:[/bold] {output['what_it_cant']}")
         if output.get("defensibility_note"):
-            lines.append(f"\n[bold]Defensibility:[/bold] [italic]{output['defensibility_note']}[/italic]")
+            defense = output['defensibility_note']
+            lines.append(
+                f"\n[bold]Defensibility:[/bold]"
+                f" [italic]{defense}[/italic]"
+            )
 
     else:
         # Fallback: pretty-print JSON
@@ -525,7 +562,13 @@ def display_idea_detail(idea: dict, agent_outputs: list[dict]) -> None:
             console.print(_format_agent_output(agent, output))
         else:
             console.print(
-                Panel(str(output), title=f"Agent: {agent.upper()}", border_style="dim", expand=False, width=76)
+                Panel(
+                    str(output),
+                    title=f"Agent: {agent.upper()}",
+                    border_style="dim",
+                    expand=False,
+                    width=76,
+                )
             )
 
 
@@ -551,7 +594,9 @@ def display_preferences(prefs: Any) -> None:
     if not any(data.values()):
         console.print(
             Panel(
-                "[dim]No preferences learned yet. Run some loops to teach the system your taste![/dim]",
+                "[dim]No preferences learned yet."
+                " Run some loops to teach the system"
+                " your taste![/dim]",
                 border_style="dim",
                 expand=False,
             )
@@ -567,7 +612,6 @@ def display_preferences(prefs: Any) -> None:
             for k, v in sorted(value.items(), key=lambda x: -abs(x[1])):
                 color = "green" if v > 0 else "red"
                 bar_val = int(min(abs(v), 10))
-                direction = "+" if v > 0 else "-"
                 bar = f"[{color}]{_SCORE_BLOCK * bar_val}[/{color}]"
                 lines.append(f"  {k:24s} {bar} [{color}]{v:+.1f}[/{color}]")
         elif isinstance(value, list):
@@ -667,7 +711,9 @@ def display_livestream_banner(persona_label: str) -> None:
     """Show the branded livestream banner with persona info."""
     console.print(
         Panel(
-            LIVESTREAM_LOGO + f"\n  [dim]Persona:[/dim] [bold magenta]{persona_label}[/bold magenta]",
+            LIVESTREAM_LOGO
+            + f"\n  [dim]Persona:[/dim]"
+            f" [bold magenta]{persona_label}[/bold magenta]",
             subtitle="[dim]autonomous agent mode[/dim]",
             border_style="red",
             expand=False,
@@ -770,7 +816,8 @@ def display_claude_check(idea: dict, claude_check_output: dict) -> None:
         f"[bold bright_white]{idea.get('name', '?')}[/bold bright_white]",
         f"[dim italic]{idea.get('one_liner', '')}[/dim italic]",
         "",
-        f"[bold]Verdict:[/bold]  [{verdict_style}]{verdict.upper().replace('_', ' ')}[/{verdict_style}]",
+        f"[bold]Verdict:[/bold]  [{verdict_style}]"
+        f"{verdict.upper().replace('_', ' ')}[/{verdict_style}]",
         f"[bold]Product:[/bold]  {product}",
         f"[bold]Time:[/bold]     {time_est}",
     ]

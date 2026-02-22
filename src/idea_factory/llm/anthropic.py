@@ -27,4 +27,4 @@ class AnthropicProvider(LLMProvider):
             "input_tokens": getattr(response.usage, "input_tokens", 0),
             "output_tokens": getattr(response.usage, "output_tokens", 0),
         }
-        return response.content[0].text
+        return response.content[0].text  # type: ignore[union-attr]

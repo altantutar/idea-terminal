@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import queue
 import threading
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
 
+from idea_factory.agents.builder import BuilderAgent
+from idea_factory.agents.challenger import ChallengerAgent
+from idea_factory.agents.claude_check import ClaudeCheckAgent
+from idea_factory.agents.consumer import ConsumerAgent
+from idea_factory.agents.creator import CreatorAgent
+from idea_factory.agents.distributor import DistributorAgent
+from idea_factory.agents.judge import JudgeAgent
 from idea_factory.config import Settings
 from idea_factory.db import repository as repo
 from idea_factory.db.connection import get_db
@@ -23,14 +28,6 @@ from idea_factory.preferences import (
 )
 from idea_factory.prompts import challenger_reflection_prompt, judge_reflection_prompt
 from idea_factory.reflexion import run_with_reflexion
-
-from idea_factory.agents.builder import BuilderAgent
-from idea_factory.agents.challenger import ChallengerAgent
-from idea_factory.agents.claude_check import ClaudeCheckAgent
-from idea_factory.agents.consumer import ConsumerAgent
-from idea_factory.agents.creator import CreatorAgent
-from idea_factory.agents.distributor import DistributorAgent
-from idea_factory.agents.judge import JudgeAgent
 
 logger = logging.getLogger("idea_factory.web.runner")
 
@@ -150,7 +147,7 @@ class RunState:
                 "taste_prefix": taste_prefix,
                 "recent_rejections": recent_rejections,
             })
-            ideas = creator_out.ideas
+            ideas = creator_out.ideas  # type: ignore[attr-defined]
             self._track_usage(conn, creator, None, settings)
             self.emit(
                 EventType.AGENT_COMPLETED,

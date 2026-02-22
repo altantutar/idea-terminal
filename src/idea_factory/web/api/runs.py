@@ -7,7 +7,7 @@ import asyncio
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from idea_factory.web.runner import RunState, create_run, get_run_state, stop_run
+from idea_factory.web.runner import create_run, get_run_state, stop_run
 
 router = APIRouter(tags=["runs"])
 

@@ -6,7 +6,6 @@ import json
 import sqlite3
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Ideas
 # ---------------------------------------------------------------------------
@@ -24,7 +23,12 @@ def save_idea(conn: sqlite3.Connection, idea: dict) -> int:
     return cur.lastrowid  # type: ignore[return-value]
 
 
-def update_idea_status(conn: sqlite3.Connection, idea_id: int, status: str, composite_score: float | None = None) -> None:
+def update_idea_status(
+    conn: sqlite3.Connection,
+    idea_id: int,
+    status: str,
+    composite_score: float | None = None,
+) -> None:
     if composite_score is not None:
         conn.execute(
             "UPDATE ideas SET status = ?, composite_score = ? WHERE id = ?",
@@ -118,7 +122,12 @@ def reset_preferences(conn: sqlite3.Connection) -> None:
 # Sessions
 # ---------------------------------------------------------------------------
 
-def save_session(conn: sqlite3.Connection, region: str, domains: list[str], constraints: str) -> int:
+def save_session(
+    conn: sqlite3.Connection,
+    region: str,
+    domains: list[str],
+    constraints: str,
+) -> int:
     """Insert a new session row and return its id."""
     cur = conn.execute(
         "INSERT INTO sessions (region, domains, constraints) VALUES (?, ?, ?)",
@@ -140,10 +149,16 @@ def get_latest_session(conn: sqlite3.Connection) -> dict | None:
     return d
 
 
-def update_session_progress(conn: sqlite3.Connection, session_id: int, loop_num: int, total_winners: int) -> None:
+def update_session_progress(
+    conn: sqlite3.Connection,
+    session_id: int,
+    loop_num: int,
+    total_winners: int,
+) -> None:
     """Persist loop progress for the given session."""
     conn.execute(
-        "UPDATE sessions SET loop_num = ?, total_winners = ?, updated_at = datetime('now') WHERE id = ?",
+        "UPDATE sessions SET loop_num = ?, total_winners = ?,"
+        " updated_at = datetime('now') WHERE id = ?",
         (loop_num, total_winners, session_id),
     )
     conn.commit()
@@ -197,7 +212,8 @@ def save_token_usage(
 ) -> None:
     """Record token usage for one agent call."""
     conn.execute(
-        """INSERT INTO token_usage (idea_id, agent_name, input_tokens, output_tokens, provider, model)
+        """INSERT INTO token_usage
+           (idea_id, agent_name, input_tokens, output_tokens, provider, model)
            VALUES (?, ?, ?, ?, ?, ?)""",
         (idea_id, agent_name, input_tokens, output_tokens, provider, model),
     )
@@ -248,7 +264,8 @@ def get_cost_summary(conn: sqlite3.Connection) -> dict[str, Any]:
 def save_scoreboard_entry(conn: sqlite3.Connection, entry: dict) -> None:
     """Upsert a scoreboard entry."""
     conn.execute(
-        """INSERT INTO scoreboard (idea_name, composite_score, verdict, taste_decision, taste_rating)
+        """INSERT INTO scoreboard
+           (idea_name, composite_score, verdict, taste_decision, taste_rating)
            VALUES (?, ?, ?, ?, ?)""",
         (
             entry.get("name", ""),

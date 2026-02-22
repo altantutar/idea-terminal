@@ -12,8 +12,8 @@ _WEB_DIR = Path(__file__).parent
 
 def create_app() -> FastAPI:
     """Build and return the FastAPI application."""
-    from idea_factory.web.api import ideas, stats, runs, feedback, provider
     from idea_factory.web import pages, sse
+    from idea_factory.web.api import feedback, ideas, provider, runs, stats
 
     app = FastAPI(title="Idea Factory", docs_url="/docs")
 
