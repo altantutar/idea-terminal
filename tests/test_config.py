@@ -82,6 +82,19 @@ class TestSettings:
             assert s.llm_provider == "openai"
             assert s.model == "gpt-4o"
 
+    def test_gemini_provider(self):
+        env = {"IDEA_FACTORY_LLM_PROVIDER": "gemini"}
+        with mock.patch.dict(os.environ, env, clear=False):
+            s = Settings()
+            assert s.llm_provider == "gemini"
+            assert s.model == "gemini-3.1-pro-preview"
+
+    def test_gemini_key_alias(self):
+        env = {"IDEA_FACTORY_LLM_PROVIDER": "gemini", "GEMINI_KEY": "g-alias"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            s = Settings()
+            assert s.gemini_api_key == "g-alias"
+
     def test_invalid_provider(self):
         env = {"IDEA_FACTORY_LLM_PROVIDER": "invalid"}
         with mock.patch.dict(os.environ, env, clear=False):
@@ -108,16 +121,25 @@ class TestSettings:
     def test_set_provider_invalid(self):
         s = Settings()
         with pytest.raises(ValueError, match="Unsupported provider"):
-            s.set_provider("gemini")
+            s.set_provider("invalid")
 
     def test_active_api_key(self):
         s = Settings()
         s.anthropic_api_key = "key-a"
         s.openai_api_key = "key-o"
+        s.gemini_api_key = "key-g"
         s.llm_provider = "anthropic"
         assert s.active_api_key() == "key-a"
         s.llm_provider = "openai"
         assert s.active_api_key() == "key-o"
+        s.llm_provider = "gemini"
+        assert s.active_api_key() == "key-g"
+
+    def test_set_provider_gemini(self):
+        s = Settings()
+        s.set_provider("gemini", "key-g")
+        assert s.llm_provider == "gemini"
+        assert s.gemini_api_key == "key-g"
 
     def test_validate_missing_anthropic_key(self):
         s = Settings()
@@ -131,4 +153,11 @@ class TestSettings:
         s.llm_provider = "openai"
         s.openai_api_key = None
         with pytest.raises(ValueError, match="OPENAI_API_KEY"):
+            s.validate()
+
+    def test_validate_missing_gemini_key(self):
+        s = Settings()
+        s.llm_provider = "gemini"
+        s.gemini_api_key = None
+        with pytest.raises(ValueError, match="GEMINI_API_KEY"):
             s.validate()

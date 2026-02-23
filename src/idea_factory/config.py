@@ -21,6 +21,7 @@ except ModuleNotFoundError:  # python-dotenv is optional
 DEFAULT_MODELS = {
     "anthropic": "claude-sonnet-4-6",
     "openai": "gpt-4o",
+    "gemini": "gemini-3.1-pro-preview",
 }
 
 DOMAIN_CHOICES = [
@@ -204,13 +205,15 @@ class Settings:
 
     def __init__(self) -> None:
         self.llm_provider: str = os.getenv("IDEA_FACTORY_LLM_PROVIDER", "anthropic").lower()
-        if self.llm_provider not in ("anthropic", "openai"):
+        if self.llm_provider not in ("anthropic", "openai", "gemini"):
             raise ValueError(
-                f"Unsupported LLM provider: {self.llm_provider}. Use 'anthropic' or 'openai'."
+                "Unsupported LLM provider: "
+                f"{self.llm_provider}. Use 'anthropic', 'openai', or 'gemini'."
             )
 
         self.anthropic_api_key: str | None = os.getenv("ANTHROPIC_API_KEY")
         self.openai_api_key: str | None = os.getenv("OPENAI_API_KEY")
+        self.gemini_api_key: str | None = os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_KEY")
 
         self.model: str = os.getenv("IDEA_FACTORY_MODEL", DEFAULT_MODELS[self.llm_provider])
 
@@ -241,20 +244,24 @@ class Settings:
         """Return the API key for the currently selected provider."""
         if self.llm_provider == "anthropic":
             return self.anthropic_api_key
-        return self.openai_api_key
+        if self.llm_provider == "openai":
+            return self.openai_api_key
+        return self.gemini_api_key
 
     def set_provider(self, provider: str, api_key: str | None = None) -> None:
         """Override the provider (and optionally the key) after construction."""
         provider = provider.lower()
-        if provider not in ("anthropic", "openai"):
+        if provider not in ("anthropic", "openai", "gemini"):
             raise ValueError(f"Unsupported provider: {provider}")
         self.llm_provider = provider
         self.model = os.getenv("IDEA_FACTORY_MODEL", DEFAULT_MODELS[provider])
         if api_key:
             if provider == "anthropic":
                 self.anthropic_api_key = api_key
-            else:
+            elif provider == "openai":
                 self.openai_api_key = api_key
+            else:
+                self.gemini_api_key = api_key
 
     def validate(self) -> None:
         """Raise if the required API key for the chosen provider is missing."""
@@ -262,3 +269,5 @@ class Settings:
             raise ValueError("ANTHROPIC_API_KEY is required when using the Anthropic provider.")
         if self.llm_provider == "openai" and not self.openai_api_key:
             raise ValueError("OPENAI_API_KEY is required when using the OpenAI provider.")
+        if self.llm_provider == "gemini" and not self.gemini_api_key:
+            raise ValueError("GEMINI_API_KEY is required when using the Gemini provider.")

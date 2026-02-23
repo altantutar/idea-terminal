@@ -28,13 +28,15 @@ pip install -e .
 ### Requirements
 
 - Python 3.11+
-- An API key for either [Anthropic](https://console.anthropic.com/settings/keys) or [OpenAI](https://platform.openai.com/api-keys)
+- An API key for [Anthropic](https://console.anthropic.com/settings/keys), [OpenAI](https://platform.openai.com/api-keys), or [Google Gemini](https://aistudio.google.com/apikey)
 
 ```bash
 # Set your API key
 export ANTHROPIC_API_KEY=sk-ant-...
 # or
 export OPENAI_API_KEY=sk-...
+# or
+export GEMINI_API_KEY=AIza...
 ```
 
 ## Usage
@@ -56,7 +58,7 @@ Opens at [http://127.0.0.1:8000](http://127.0.0.1:8000). Browse ideas, inspect a
 idea-factory web --host 0.0.0.0 --port 3000
 ```
 
-On first run, the web UI will ask you to select a provider (Anthropic or OpenAI) and enter your API key. The key is remembered for the session.
+On first run, the web UI will ask you to select a provider (Anthropic, OpenAI, or Gemini) and enter your API key. The key is remembered for the session.
 
 ### Interactive Mode
 
@@ -160,6 +162,7 @@ src/idea_factory/
 │   ├── anthropic.py      # Anthropic provider
 │   ├── base.py           # LLMProvider base
 │   ├── factory.py        # Provider factory
+│   ├── gemini.py         # Gemini provider
 │   └── openai.py         # OpenAI provider
 ├── web/
 │   ├── api/              # REST API (ideas, stats, runs, feedback, provider)
