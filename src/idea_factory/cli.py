@@ -352,7 +352,9 @@ def _setup_provider(settings: Settings) -> None:
         key_name = (
             "ANTHROPIC_API_KEY"
             if provider == "anthropic"
-            else "OPENAI_API_KEY" if provider == "openai" else "GEMINI_API_KEY"
+            else "OPENAI_API_KEY"
+            if provider == "openai"
+            else "GEMINI_API_KEY"
         )
         console.print(f"\n[yellow]No {key_name} found in environment.[/yellow]")
         if provider == "anthropic":
