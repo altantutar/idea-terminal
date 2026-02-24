@@ -277,7 +277,7 @@ def annotate(
 
     if not updates:
         console.print(
-            "[yellow]No updates provided." " Use --tags, --note, --decision, or --rating.[/yellow]"
+            "[yellow]No updates provided. Use --tags, --note, --decision, or --rating.[/yellow]"
         )
         conn.close()
         return
