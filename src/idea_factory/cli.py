@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import json
-from typing import Optional
+from typing import Any, Optional
 
 import typer
 from rich.console import Console
 from rich.prompt import Prompt
 
-from idea_factory.config import DOMAIN_CHOICES, Settings
+from idea_factory.config import DEFAULT_QUICK_DOMAINS, DOMAIN_CHOICES, Settings
 from idea_factory.db import repository as repo
 from idea_factory.db.connection import get_db
 from idea_factory.display import (
@@ -50,9 +50,24 @@ def start(
         "-cc",
         help="Run Claude Check agent to assess one-shottability",
     ),
+    demo: bool = typer.Option(False, "--demo", help="Run demo with sample data, no API key needed"),
+    compact: bool = typer.Option(
+        False, "--compact", help="Show compact table instead of full cards"
+    ),
+    detailed_feedback: bool = typer.Option(
+        True,
+        "--detailed-feedback/--no-detailed-feedback",
+        help="Use detailed or quick (s/n/q) feedback",
+    ),
 ) -> None:
     """Start the interactive idea generation loop."""
     import os
+
+    if demo:
+        from idea_factory.demo import run_demo
+
+        run_demo(compact=compact)
+        return
 
     if verbose:
         os.environ["IDEA_FACTORY_VERBOSE"] = "1"
@@ -98,7 +113,178 @@ def start(
         settings,
         session_id=session_id,
         claude_check=claude_check,
+        compact=compact,
+        detailed_feedback=detailed_feedback,
     )
+
+
+@app.command()
+def quick(
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
+    claude_check: bool = typer.Option(
+        False,
+        "--claude-check",
+        "-cc",
+        help="Run Claude Check agent to assess one-shottability",
+    ),
+    demo: bool = typer.Option(False, "--demo", help="Run demo with sample data, no API key needed"),
+    compact: bool = typer.Option(
+        False, "--compact", help="Show compact table instead of full cards"
+    ),
+    detailed_feedback: bool = typer.Option(
+        False,
+        "--detailed-feedback/--no-detailed-feedback",
+        help="Use detailed or quick (s/n/q) feedback",
+    ),
+) -> None:
+    """Zero-prompt startup — skip all interactive setup and jump straight to ideas."""
+    import os
+
+    if demo:
+        from idea_factory.demo import run_demo
+
+        run_demo(compact=compact)
+        return
+
+    if verbose:
+        os.environ["IDEA_FACTORY_VERBOSE"] = "1"
+
+    settings = Settings()
+    setup_logging(level=settings.log_level, log_file=settings.log_file)
+    display_banner()
+    _setup_provider_quiet(settings)
+
+    region = "Global"
+    domains = list(DEFAULT_QUICK_DOMAINS)
+    constraints = ""
+
+    conn = get_db(settings.db_path)
+    session_id = repo.save_session(conn, region, domains, constraints)
+    conn.close()
+
+    console.print()
+    console.rule("[bold green]Starting idea generation loop[/bold green]")
+    console.print()
+
+    run_loop(
+        region,
+        domains,
+        constraints,
+        settings,
+        session_id=session_id,
+        claude_check=claude_check,
+        compact=compact,
+        detailed_feedback=detailed_feedback,
+    )
+
+
+@app.command()
+def pitch(
+    idea: Optional[str] = typer.Argument(None, help="Your startup idea (or enter interactively)"),
+    region: str = typer.Option("Global", "--region", "-r", help="Target region/market"),
+    domain: Optional[str] = typer.Option(
+        None, "--domain", "-d", help="Domain hint (e.g. saas, fintech)"
+    ),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose output"),
+    claude_check: bool = typer.Option(
+        False,
+        "--claude-check",
+        "-cc",
+        help="Run Claude Check agent to assess one-shottability",
+    ),
+    detailed_feedback: bool = typer.Option(
+        True,
+        "--detailed-feedback/--no-detailed-feedback",
+        help="Use detailed or quick (s/n/q) feedback",
+    ),
+) -> None:
+    """Pitch your own startup idea and get a full 6-agent evaluation."""
+    import os
+
+    from idea_factory.pitch import run_pitch_evaluation
+
+    if verbose:
+        os.environ["IDEA_FACTORY_VERBOSE"] = "1"
+
+    settings = Settings()
+    setup_logging(level=settings.log_level, log_file=settings.log_file)
+    display_banner()
+    _setup_provider_quiet(settings)
+
+    # Get the pitch interactively if not provided
+    raw_pitch: str = idea or ""
+    if not raw_pitch:
+        console.print(
+            "[bold bright_cyan]Pitch your startup idea![/bold bright_cyan]\n"
+            "[dim]Describe your idea in a sentence or two. Be as specific or vague"
+            " as you like — the AI will expand it.[/dim]\n"
+        )
+        raw_pitch = Prompt.ask("  Your pitch")
+        if not raw_pitch.strip():
+            console.print("[red]No idea provided. Exiting.[/red]")
+            raise typer.Exit(1)
+
+    console.print()
+    console.rule("[bold bright_cyan]Evaluating your pitch[/bold bright_cyan]")
+    console.print()
+
+    run_pitch_evaluation(
+        raw_pitch=raw_pitch,
+        settings=settings,
+        region=region,
+        domain_hint=domain or "",
+        claude_check=claude_check,
+        detailed_feedback=detailed_feedback,
+    )
+
+
+@app.command()
+def annotate(
+    idea_id: int = typer.Argument(..., help="Idea ID to annotate"),
+    tags: Optional[str] = typer.Option(None, "--tags", "-t", help="Comma-separated tags"),
+    note: Optional[str] = typer.Option(None, "--note", "-n", help="Note to attach"),
+    decision: Optional[str] = typer.Option(
+        None,
+        "--decision",
+        "-d",
+        help="Decision: love, like, meh, or hate",
+    ),
+    rating: Optional[int] = typer.Option(None, "--rating", "-r", help="Rating 1-10"),
+) -> None:
+    """Add or update feedback on an existing idea after the fact."""
+    settings = _get_settings_quiet()
+    conn = get_db(settings.db_path)
+
+    idea = repo.get_idea(conn, idea_id)
+    if not idea:
+        console.print(f"[red]Idea #{idea_id} not found.[/red]")
+        conn.close()
+        raise typer.Exit(1)
+
+    updates: dict[str, Any] = {}
+    if decision is not None:
+        if decision not in ("love", "like", "meh", "hate"):
+            console.print("[red]Decision must be one of: love, like, meh, hate[/red]")
+            conn.close()
+            raise typer.Exit(1)
+        updates["decision"] = decision
+    if rating is not None:
+        updates["rating"] = max(1, min(10, rating))
+    if tags is not None:
+        updates["tags"] = [t.strip() for t in tags.split(",") if t.strip()]
+    if note is not None:
+        updates["note"] = note
+
+    if not updates:
+        console.print(
+            "[yellow]No updates provided." " Use --tags, --note, --decision, or --rating.[/yellow]"
+        )
+        conn.close()
+        return
+
+    repo.update_feedback(conn, idea_id, updates)
+    conn.close()
+    console.print(f"[green]Feedback updated for idea #{idea_id}.[/green]")
 
 
 @app.command()
@@ -374,6 +560,42 @@ def _setup_provider(settings: Settings) -> None:
             raise typer.Exit(1)
         settings.set_provider(provider, api_key.strip())
         display_provider_detected(provider, settings.model)
+
+
+def _setup_provider_quiet(settings: Settings) -> None:
+    """Auto-pick provider from env vars without interactive prompts.
+
+    Preference order:
+    1. IDEA_FACTORY_LLM_PROVIDER env var (if corresponding key exists)
+    2. First available key: anthropic > openai > gemini
+    3. If zero keys found, fall back to interactive prompt (unavoidable).
+    """
+    has_anthropic = bool(settings.anthropic_api_key)
+    has_openai = bool(settings.openai_api_key)
+    has_gemini = bool(settings.gemini_api_key)
+
+    available: list[str] = []
+    if has_anthropic:
+        available.append("anthropic")
+    if has_openai:
+        available.append("openai")
+    if has_gemini:
+        available.append("gemini")
+
+    if not available:
+        # No keys at all — must prompt
+        _setup_provider(settings)
+        return
+
+    # If the env-specified provider has a key, use it
+    if settings.llm_provider in available:
+        provider = settings.llm_provider
+    else:
+        # Otherwise pick the first available
+        provider = available[0]
+
+    settings.set_provider(provider)
+    display_provider_detected(provider, settings.model)
 
 
 def _select_domains() -> list[str]:

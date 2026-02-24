@@ -21,9 +21,11 @@ from idea_factory.display import (
     console,
     display_challenger_result,
     display_claude_check,
+    display_compact_summary,
     display_idea_card,
     display_loop_summary,
     prompt_feedback,
+    prompt_quick_feedback,
 )
 from idea_factory.llm.base import LLMProvider
 from idea_factory.llm.factory import get_provider
@@ -84,6 +86,8 @@ def run_loop(
     settings: Settings,
     session_id: int = 0,
     claude_check: bool = False,
+    compact: bool = False,
+    detailed_feedback: bool = True,
 ) -> None:
     """Run the continuous idea generation + evaluation loop."""
     top_k = settings.top_k
@@ -301,7 +305,8 @@ def run_loop(
                 )
 
                 finalists.append((idea_dict, j_dict))
-                display_idea_card(idea_dict, j_dict)
+                if not compact:
+                    display_idea_card(idea_dict, j_dict)
 
                 # Claude Check (optional)
                 if claude_check_agent:
@@ -316,7 +321,11 @@ def run_loop(
                     cc_dict = cc_out.model_dump()
                     repo.save_agent_output(conn, idea_dict["id"], "claude_check", cc_dict)
                     _track_usage(conn, claude_check_agent, idea_dict["id"], settings)
-                    display_claude_check(idea_dict, cc_dict)
+                    if not compact:
+                        display_claude_check(idea_dict, cc_dict)
+
+            if compact and finalists:
+                display_compact_summary(finalists)
 
             display_loop_summary(
                 loop_num,
@@ -333,7 +342,13 @@ def run_loop(
                 continue
 
             for idea_dict, j_dict in finalists:
-                fb = prompt_feedback(idea_dict)
+                if detailed_feedback:
+                    fb = prompt_feedback(idea_dict)
+                else:
+                    fb_or_none = prompt_quick_feedback(idea_dict)
+                    if fb_or_none is None:
+                        raise GracefulExit()
+                    fb = fb_or_none
                 repo.save_feedback(conn, idea_dict["id"], fb)
                 prefs = update_preferences(prefs, fb, idea_dict, j_dict)
                 save_preferences(conn, prefs)

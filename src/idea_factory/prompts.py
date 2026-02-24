@@ -96,6 +96,38 @@ def creator_prompt(
     return system, user
 
 
+def refiner_prompt(
+    raw_pitch: str,
+    region: str = "Global",
+    domain_hint: str = "",
+) -> tuple[str, str]:
+    """Return (system_prompt, user_prompt) for the Refiner agent."""
+    system = (
+        f"{SYSTEM_PREFIX}\n\n"
+        "Your role: REFINER. Expand a user's raw startup pitch into a fully "
+        "structured IdeaSchema. Preserve the core concept faithfully — do NOT "
+        "change the fundamental idea. Fill in gaps with your best inferences."
+    )
+    domain_block = f"\nDomain hint: {domain_hint}" if domain_hint else ""
+    user = (
+        f"Expand this startup pitch into a structured idea.\n\n"
+        f"User's pitch: {raw_pitch}\n"
+        f"Region/market: {region}"
+        f"{domain_block}\n\n"
+        "Respond with JSON matching this schema:\n"
+        '{{"name": "short punchy name", "one_liner": "one sentence elevator pitch", '
+        '"domain": "primary domain", "problem": "the problem being solved", '
+        '"solution": "how the product solves it", "target_user": "primary user", '
+        '"monetization": "revenue model", "region": "target region", '
+        '"tags": ["keyword", "tags"], '
+        '"inspired_by": [], '
+        '"why_now": "what recent change makes this viable", '
+        '"moat": "defensibility beyond first-mover", '
+        '"unfair_insight": "a non-obvious observation"}}'
+    )
+    return system, user
+
+
 def concept_fingerprint_prompt(idea: dict) -> tuple[str, str]:
     """Return (system, user) prompts to extract a concept fingerprint from an idea."""
     system = (

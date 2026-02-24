@@ -24,6 +24,12 @@ DEFAULT_MODELS = {
     "gemini": "gemini-3.1-pro-preview",
 }
 
+DEFAULT_QUICK_DOMAINS = [
+    "Software engineering",
+    "Finance and accounting",
+    "Data analysis and BI",
+]
+
 DOMAIN_CHOICES = [
     "Software engineering",
     "Back-office automation",

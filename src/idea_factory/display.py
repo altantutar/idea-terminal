@@ -284,6 +284,7 @@ def display_idea_card(idea: dict, judge_output: dict | None = None) -> None:
 
 _AGENT_DESCRIPTIONS = {
     "creator": "Generating ideas",
+    "refiner": "Expanding your pitch",
     "challenger": "Stress-testing idea",
     "builder": "Assessing feasibility",
     "distributor": "Designing go-to-market",
@@ -936,6 +937,67 @@ def display_costs(summary: dict[str, Any]) -> None:
             padding=(1, 2),
         )
     )
+
+
+def display_compact_summary(finalists: list[tuple[dict, dict]]) -> None:
+    """Render finalists as a compact Rich table sorted by score descending."""
+    sorted_finalists = sorted(
+        finalists,
+        key=lambda x: x[1].get("composite_score", 0),
+        reverse=True,
+    )
+
+    table = Table(box=box.ROUNDED, expand=False, padding=(0, 1))
+    table.add_column("#", style="dim", width=4, justify="right")
+    table.add_column("Name", style="bold bright_white", max_width=28)
+    table.add_column("Score", justify="right", width=6)
+    table.add_column("Verdict", justify="center", width=12)
+    table.add_column("One-liner", style="dim", max_width=40)
+
+    for idx, (idea, judge_out) in enumerate(sorted_finalists, 1):
+        score = f"{judge_out.get('composite_score', 0):.1f}"
+        verdict = judge_out.get("verdict", "PASS")
+        v_style, v_label = _VERDICT_STYLE.get(verdict, ("white", verdict))
+        table.add_row(
+            str(idx),
+            idea.get("name", "?"),
+            score,
+            f"[{v_style}]{v_label}[/{v_style}]",
+            idea.get("one_liner", ""),
+        )
+
+    console.print(
+        Panel(
+            table,
+            title="[bold]Loop Results[/bold]",
+            border_style="bright_cyan",
+            expand=False,
+            padding=(1, 2),
+        )
+    )
+    console.print("[dim]Use 'idea-factory show <id>' for full detail[/dim]")
+    console.print()
+
+
+def prompt_quick_feedback(idea: dict) -> dict | None:
+    """Simplified feedback: [s]ave / [n]ext / [q]uit. Returns None on quit."""
+    console.print()
+    console.print(
+        f"  [bold bright_white]{idea['name']}[/bold bright_white]"
+        f"  [dim]{idea.get('one_liner', '')}[/dim]"
+    )
+    choice = Prompt.ask(
+        "  [s]ave / [n]ext / [q]uit",
+        choices=["s", "n", "q"],
+        default="n",
+    )
+    if choice == "q":
+        return None
+    if choice == "s":
+        console.print("  [green]Saved![/green]")
+        return {"decision": "love", "rating": 8, "tags": [], "note": ""}
+    console.print("  [dim]Skipped[/dim]")
+    return {"decision": "meh", "rating": 5, "tags": [], "note": ""}
 
 
 def display_scoreboard(scoreboard: list[dict]) -> None:
