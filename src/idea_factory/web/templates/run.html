@@ -26,6 +26,10 @@
                         <input type="radio" name="provider" value="openai" {% if provider == 'openai' %}checked{% endif %} />
                         <span class="domain-label"><strong>OpenAI</strong> — GPT (gpt-4o)</span>
                     </label>
+                    <label class="domain-option">
+                        <input type="radio" name="provider" value="gemini" {% if provider == 'gemini' %}checked{% endif %} />
+                        <span class="domain-label"><strong>Google Gemini</strong> — Gemini (gemini-3.1-pro-preview)</span>
+                    </label>
                 </div>
             </div>
             <div class="form-group" style="margin-bottom: 16px">

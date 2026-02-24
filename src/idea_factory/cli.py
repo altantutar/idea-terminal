@@ -306,6 +306,7 @@ def prefs_reset() -> None:
 _PROVIDERS = [
     ("anthropic", "Anthropic", "Claude (claude-sonnet-4-6)"),
     ("openai", "OpenAI", "GPT (gpt-4o)"),
+    ("gemini", "Google Gemini", "Gemini (gemini-3.1-pro-preview)"),
 ]
 
 
@@ -317,7 +318,8 @@ def _prompt_provider_choice() -> str:
             f"  [bold bright_cyan]{i}.[/bold bright_cyan]  [bold]{name}[/bold]  [dim]{desc}[/dim]"
         )
     console.print()
-    choice = Prompt.ask("Select", choices=["1", "2"], default="1")
+    choices = [str(i) for i in range(1, len(_PROVIDERS) + 1)]
+    choice = Prompt.ask("Select", choices=choices, default="1")
     return _PROVIDERS[int(choice) - 1][0]
 
 
@@ -325,31 +327,47 @@ def _setup_provider(settings: Settings) -> None:
     """Auto-detect API keys and configure the LLM provider."""
     has_anthropic = bool(settings.anthropic_api_key)
     has_openai = bool(settings.openai_api_key)
+    has_gemini = bool(settings.gemini_api_key)
 
-    if has_anthropic and not has_openai:
-        settings.set_provider("anthropic")
-        display_provider_detected("anthropic", settings.model)
-    elif has_openai and not has_anthropic:
-        settings.set_provider("openai")
-        display_provider_detected("openai", settings.model)
-    elif has_anthropic and has_openai:
-        console.print("[green]Found API keys for both Anthropic and OpenAI.[/green]\n")
+    available: list[str] = []
+    if has_anthropic:
+        available.append("anthropic")
+    if has_openai:
+        available.append("openai")
+    if has_gemini:
+        available.append("gemini")
+
+    if len(available) == 1:
+        provider = available[0]
+        settings.set_provider(provider)
+        display_provider_detected(provider, settings.model)
+    elif len(available) > 1:
+        console.print("[green]Found API keys for multiple providers.[/green]\n")
         provider = _prompt_provider_choice()
         settings.set_provider(provider)
         display_provider_detected(provider, settings.model)
     else:
         provider = _prompt_provider_choice()
         settings.set_provider(provider)
-        key_name = "ANTHROPIC_API_KEY" if provider == "anthropic" else "OPENAI_API_KEY"
+        key_name = (
+            "ANTHROPIC_API_KEY"
+            if provider == "anthropic"
+            else "OPENAI_API_KEY"
+            if provider == "openai"
+            else "GEMINI_API_KEY"
+        )
         console.print(f"\n[yellow]No {key_name} found in environment.[/yellow]")
         if provider == "anthropic":
             console.print(
                 "[dim]Get your API key at: https://console.anthropic.com/settings/keys[/dim]"
             )
             console.print("[dim]Or set it permanently: export ANTHROPIC_API_KEY=sk-ant-...[/dim]\n")
-        else:
+        elif provider == "openai":
             console.print("[dim]Get your API key at: https://platform.openai.com/api-keys[/dim]")
             console.print("[dim]Or set it permanently: export OPENAI_API_KEY=sk-...[/dim]\n")
+        else:
+            console.print("[dim]Get your API key at: https://aistudio.google.com/apikey[/dim]")
+            console.print("[dim]Or set it permanently: export GEMINI_API_KEY=AIza...[/dim]\n")
         api_key = Prompt.ask(f"Paste your {key_name}", password=True)
         if not api_key.strip():
             console.print("[bold red]API key is required. Exiting.[/bold red]")
