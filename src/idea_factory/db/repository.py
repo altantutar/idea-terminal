@@ -11,15 +11,15 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 
-def save_idea(conn: sqlite3.Connection, idea: dict) -> int:
+def save_idea(conn: sqlite3.Connection, idea: dict, source: str = "ai") -> int:
     """Insert an idea row and return its id."""
     cur = conn.execute(
         """INSERT INTO ideas (name, one_liner, domain, problem, solution,
                               target_user, monetization, region, tags, inspired_by,
-                              why_now, moat, unfair_insight)
+                              why_now, moat, unfair_insight, source)
            VALUES (:name, :one_liner, :domain, :problem, :solution,
                    :target_user, :monetization, :region, :tags, :inspired_by,
-                   :why_now, :moat, :unfair_insight)""",
+                   :why_now, :moat, :unfair_insight, :source)""",
         {
             **idea,
             "tags": json.dumps(idea.get("tags", [])),
@@ -27,6 +27,7 @@ def save_idea(conn: sqlite3.Connection, idea: dict) -> int:
             "why_now": idea.get("why_now", ""),
             "moat": idea.get("moat", ""),
             "unfair_insight": idea.get("unfair_insight", ""),
+            "source": source,
         },
     )
     conn.commit()
@@ -108,6 +109,45 @@ def save_feedback(conn: sqlite3.Connection, idea_id: int, feedback: dict) -> int
     )
     conn.commit()
     return cur.lastrowid  # type: ignore[return-value]
+
+
+def update_feedback(conn: sqlite3.Connection, idea_id: int, updates: dict[str, Any]) -> None:
+    """Upsert feedback for a given idea.
+
+    If a feedback row already exists for *idea_id*, merge *updates* into it.
+    Otherwise insert a new row with the provided fields.
+    """
+    existing = conn.execute(
+        "SELECT id, decision, rating, tags, note FROM feedback"
+        " WHERE idea_id = ? ORDER BY id DESC LIMIT 1",
+        (idea_id,),
+    ).fetchone()
+
+    if existing:
+        row = dict(existing)
+        decision = updates.get("decision", row["decision"])
+        rating = updates.get("rating", row["rating"])
+        tags_raw = row["tags"]
+        current_tags: list[str] = json.loads(tags_raw) if isinstance(tags_raw, str) else tags_raw
+        if "tags" in updates:
+            current_tags = list(set(current_tags) | set(updates["tags"]))
+        note = updates.get("note", row["note"])
+        conn.execute(
+            "UPDATE feedback SET decision = ?, rating = ?, tags = ?, note = ? WHERE id = ?",
+            (decision, rating, json.dumps(current_tags), note, row["id"]),
+        )
+    else:
+        conn.execute(
+            "INSERT INTO feedback (idea_id, decision, rating, tags, note) VALUES (?, ?, ?, ?, ?)",
+            (
+                idea_id,
+                updates.get("decision", "meh"),
+                updates.get("rating", 5),
+                json.dumps(updates.get("tags", [])),
+                updates.get("note", ""),
+            ),
+        )
+    conn.commit()
 
 
 # ---------------------------------------------------------------------------
